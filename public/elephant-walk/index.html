@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elephant · Risograph Botanical Wilderness</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: #f3efe6;
+    font-family: "JetBrains Mono", monospace;
+  }
+  canvas { display: block; }
+  .ui {
+    position: fixed; bottom: 20px; color: #243822; font-size: 11px; line-height: 1.75;
+    letter-spacing: .06em; text-transform: uppercase; pointer-events: none;
+    background: rgba(243, 239, 230, 0.88); padding: 10px 14px;
+    border: 1px solid rgba(56, 140, 38, 0.28);
+    box-shadow: 2px 2px 0 rgba(255, 62, 20, 0.20), -2px -2px 0 rgba(12, 152, 186, 0.16);
+  }
+  #hud { left: 20px; }
+  #hud b { display: inline-block; min-width: 6.4em; font-weight: 700; color: #eb3810; }
+  #stats { right: 20px; text-align: right; }
+  #plate-badge {
+    position: fixed; top: 20px; left: 20px; pointer-events: none;
+    color: #243822; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    background: rgba(243, 239, 230, 0.88); padding: 8px 12px;
+    border: 1px solid rgba(56, 140, 38, 0.28);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .swatches { display: flex; gap: 5px; }
+  .swatch { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.12); }
+  #story-panel {
+    position: fixed; top: 20px; right: 20px; pointer-events: none;
+    color: #243822; font-size: 11px; line-height: 1.65; letter-spacing: .08em; text-transform: uppercase;
+    background: rgba(243, 239, 230, 0.90); padding: 10px 14px;
+    border: 1px solid rgba(56, 140, 38, 0.28);
+    box-shadow: 2px 2px 0 rgba(255, 62, 20, 0.20), -2px -2px 0 rgba(12, 152, 186, 0.16);
+    text-align: right; max-width: 340px;
+  }
+  .plate-dots {
+    display: inline-flex; gap: 6px; vertical-align: middle; margin-left: 6px;
+  }
+  .pdot {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 1.5px solid #0c98bd; background: transparent;
+    transition: all 0.35s ease;
+  }
+  .pdot.active {
+    background: #ff380e; border-color: #ffdc14;
+    box-shadow: 0 0 0 2px rgba(255, 220, 20, 0.55);
+  }
+  #wayfinder {
+    color: #0b7a99; font-weight: 600; margin-top: 2px;
+  }
+  #field-note {
+    position: fixed; top: 96px; right: 20px; pointer-events: none;
+    color: #243822; font-size: 11px; line-height: 1.6; letter-spacing: .06em;
+    background: rgba(243, 239, 230, 0.94); padding: 10px 14px;
+    border-left: 3px solid #ff380e; border-top: 1px solid rgba(56, 140, 38, 0.25);
+    border-right: 1px solid rgba(56, 140, 38, 0.25); border-bottom: 1px solid rgba(56, 140, 38, 0.25);
+    box-shadow: 3px 3px 0 rgba(255, 220, 20, 0.35);
+    max-width: 320px; text-align: left;
+    opacity: 0; transform: translateY(-6px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+  }
+  #field-note.visible {
+    opacity: 1; transform: translateY(0);
+  }
+  #field-note .fn-title {
+    color: #eb3810; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 3px;
+  }
+  #prompt-banner {
+    position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%);
+    pointer-events: none; color: #243822; font-size: 11px; font-weight: 700;
+    letter-spacing: .12em; text-transform: uppercase;
+    background: rgba(244, 240, 230, 0.94); padding: 8px 16px;
+    border: 1.5px solid #ff380e;
+    box-shadow: 2px 2px 0 #ffdc14, -2px -2px 0 #0c98bd;
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  #prompt-banner.visible { opacity: 1; }
+  #prompt-banner span { color: #eb3810; }
+  #loading {
+    position: fixed; inset: 0; display: grid; place-items: center;
+    color: #243822; font-size: 12px; letter-spacing: .14em; background: #f3efe6; z-index: 10;
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="loading">INKING RISOGRAPH PLATES &amp; FOREST LANDSCAPE…</div>
+
+<div id="plate-badge">
+  <span>THE LAST INKWELL · <strong id="palettename">BOTANICAL MANTIS</strong></span>
+  <div class="swatches">
+    <span class="swatch" style="background:#ffd818" title="Sunflower Yellow"></span>
+    <span class="swatch" style="background:#ff3b10" title="Fluorescent Vermilion"></span>
+    <span class="swatch" style="background:#429e26" title="Botanical Leaf Green"></span>
+    <span class="swatch" style="background:#0e96ba" title="Registration Cyan"></span>
+  </div>
+</div>
+
+<div id="story-panel">
+  <div>
+    <span id="plates-label">0 / 5 SANCTUARY PLATES INKED</span>
+    <span class="plate-dots" id="plate-dots">
+      <span class="pdot"></span><span class="pdot"></span><span class="pdot"></span><span class="pdot"></span><span class="pdot"></span>
+    </span>
+  </div>
+  <div id="wayfinder">SEEK THE CYAN ASTROLABE AHEAD &amp; PRESS [SPACE]</div>
+</div>
+
+<div id="field-note">
+  <div class="fn-title" id="fn-title">UNINKED REGISTRATION PROOF</div>
+  <div id="fn-body">The forest sleeps as a pale cyan proof on raw cotton paper. Walk to each Sanctuary Astrolabe and press [SPACE] to trumpet living Risograph ink across the land.</div>
+</div>
+
+<div id="prompt-banner">NEAR SANCTUARY ASTROLABE · PRESS <span>[SPACE]</span> TO TRUMPET &amp; INK PLATE</div>
+
+<div id="hud" class="ui">
+  <div><b>W / S</b> walk forward / back</div>
+  <div><b>A / D</b> turn left / right</div>
+  <div><b>Space</b> trumpet &amp; release ink wave</div>
+  <div><b>Shift</b> brisk walk</div>
+  <div><b>I</b> world ink: <span id="inkhud">story mode</span></div>
+  <div><b>P</b> riso inks: <span id="palhud">mantis</span></div>
+  <div><b>G</b> texture: <span id="grainname">velvet riso</span></div>
+  <div><b>C</b> camera: <span id="camname">follow</span></div>
+  <div><b>R</b> mode: <span id="modename">riso print</span></div>
+</div>
+<div id="stats" class="ui"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+
+const params = new URLSearchParams(location.search);
+const FREEZE_P = params.has('p') ? parseFloat(params.get('p')) : null;
+const CAM_MODES = ['follow', 'side', 'front'];
+let camMode = params.get('cam') || 'follow';
+let risoEnabled = params.get('raw') !== '1';
+
+// Luminous, pure Riso soy-ink palettes (no muddy black ink — all depth comes from pure Green, Vermilion & Cyan overprints!)
+const PALETTES = [
+  {
+    name: 'botanical mantis',
+    short: 'mantis',
+    paper: new THREE.Color(0xf4f0e6),
+    yellow: new THREE.Color(0xffdc14),
+    vermilion: new THREE.Color(0xff380e),
+    green: new THREE.Color(0x3ca022),
+    cyan: new THREE.Color(0x0c98bd),
+  },
+  {
+    name: 'field engraving',
+    short: 'engraving',
+    paper: new THREE.Color(0xf2ece1),
+    yellow: new THREE.Color(0xffc818),
+    vermilion: new THREE.Color(0xf23d18),
+    green: new THREE.Color(0x1f568a),
+    cyan: new THREE.Color(0x1490a8),
+  },
+  {
+    name: 'sunlit citrus',
+    short: 'citrus',
+    paper: new THREE.Color(0xf5f1e8),
+    yellow: new THREE.Color(0xffe01b),
+    vermilion: new THREE.Color(0xff2a4b),
+    green: new THREE.Color(0x289c52),
+    cyan: new THREE.Color(0x00a2c7),
+  },
+];
+let paletteIdx = params.has('pal') ? Math.max(0, parseInt(params.get('pal'), 10) || 0) % PALETTES.length : 0;
+
+const GRAIN_STYLES = ['velvet riso', 'engraving hatch', 'coarse mezzotint'];
+let grainIdx = params.has('grain') ? Math.max(0, parseInt(params.get('grain'), 10) || 0) % GRAIN_STYLES.length : 0;
+
+// ---------------------------------------------------------------- scale & gait tunables
+const ELEPHANT_SCALE = 1.25;
+const WORLD_SCALE = 0.015;
+
+const G = {
+  walkSpeed: 0.95 * ELEPHANT_SCALE,
+  hurry: 1.6,
+  turnRate: 0.85,
+  duty: 0.66,
+  sweepFore: 0.74 * ELEPHANT_SCALE,
+  sweepHind: 0.74 * ELEPHANT_SCALE,
+  liftFore: 0.22 * ELEPHANT_SCALE,
+  liftHind: 0.18 * ELEPHANT_SCALE,
+  tiltFore: 0.65,
+  tiltHind: 0.45,
+  bob: 0.032 * ELEPHANT_SCALE,
+  roll: 0.04,
+  pitch: 0.018,
+};
+const OFFSETS = { LH: 0.0, LF: 0.25, RH: 0.5, RF: 0.75 };
+
+// ---------------------------------------------------------------- renderer & scene
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = false; // Clean editorial Riso print without harsh black cast shadows
+renderer.toneMapping = THREE.NoToneMapping;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000); // B=0 identifies open warm paper sky
+
+const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 260);
+
+// ---------------------------------------------------------------- Camera-Relative Riso Separation Lights for Elephant
+// R channel = Sculptural Key Illumination (bright highlights -> golden midtones -> green core shadows)
+// G channel = Warm Vermilion-Orange Rim / Back / Ear / Crown Accent (separates fiery Vermilion/Yellow from Leaf Green!)
+const hemi = new THREE.HemisphereLight(0x557700, 0x181000, 1.15);
+scene.add(hemi);
+
+const keyLight = new THREE.DirectionalLight(0xff2800, 2.9);
+scene.add(keyLight, keyLight.target);
+
+const warmRimLight = new THREE.DirectionalLight(0x22ff00, 3.4);
+scene.add(warmRimLight, warmRimLight.target);
+
+const bounceLight = new THREE.DirectionalLight(0x553300, 1.2);
+scene.add(bounceLight, bounceLight.target);
+
+// ---------------------------------------------------------------- World Shader Material (Re-Inking a Faded World + Wind)
+const TRAIL_MAX = 16;
+const initialTrail = Array.from({ length: TRAIL_MAX }, () => new THREE.Vector4(0, -999, 0, 0));
+const initialSanctuaries = Array.from({ length: 5 }, () => new THREE.Vector4(0, -999, 0, 0));
+
+const sharedUniforms = {
+  uLightDir:    { value: new THREE.Vector3(-0.45, 0.80, 0.40).normalize() },
+  uTime:        { value: 0.0 },
+  uElephantPos: { value: new THREE.Vector3(0, 0, 0) },
+  uGlobalInk:   { value: params.get('ink') === '1' ? 1.0 : 0.0 },
+  uSkyInk:      { value: params.get('ink') === '1' ? 1.0 : 0.15 },
+  uPulseWave:   { value: new THREE.Vector4(0, -999, 0, -10.0) },
+  uSanctuaries: { value: initialSanctuaries },
+  uTrail:       { value: initialTrail },
+};
+
+const worldRisoMat = new THREE.ShaderMaterial({
+  uniforms: {
+    uLightDir:    sharedUniforms.uLightDir,
+    uTime:        sharedUniforms.uTime,
+    uElephantPos: sharedUniforms.uElephantPos,
+    uGlobalInk:   sharedUniforms.uGlobalInk,
+    uPulseWave:   sharedUniforms.uPulseWave,
+    uSanctuaries: sharedUniforms.uSanctuaries,
+    uTrail:       sharedUniforms.uTrail,
+    uKind:        { value: 0.0 }, // 0=meadow, 1=path, 2=tree, 3=rock, 4=mountain, 5=flower/grass, 6=water
+  },
+  vertexShader: /* glsl */`
+    uniform float uKind;
+    uniform float uTime;
+    uniform float uGlobalInk;
+    uniform vec3 uElephantPos;
+    uniform vec4 uPulseWave;
+    uniform vec4 uSanctuaries[5];
+    uniform vec4 uTrail[16];
+    varying vec3 vNormalW;
+    varying vec3 vWorldPos;
+    varying vec3 vLocalPos;
+    varying vec3 vViewDir;
+    varying float vLifeBoost;
+    varying float vInked;
+    varying float vWaveRing;
+
+    void main() {
+      vLocalPos = position;
+      vec4 wp = modelMatrix * vec4(position, 1.0);
+
+      vec2 toEl = wp.xz - uElephantPos.xz;
+      float distEl = length(toEl);
+      vLifeBoost = smoothstep(5.8, 1.2, distEl);
+
+      // Compute Spatial Re-Inking Factor (0.0 = Ghosted Unprinted Proof, 1.0 = Full 4-Drum Risograph Ink)
+      float ink = uGlobalInk;
+      // 1. Living Ink Aura around the Elephant
+      ink = max(ink, smoothstep(6.8, 2.2, distEl));
+      // 2. Awakened Botanical Sanctuary Domes
+      for (int i = 0; i < 5; i++) {
+        vec4 s = uSanctuaries[i];
+        if (s.w > 0.1) {
+          float ds = length(wp.xz - s.xz);
+          ink = max(ink, smoothstep(s.w + 2.5, max(0.0, s.w - 3.5), ds));
+        }
+      }
+      // 3. Persistent Footpath Ink Trail behind the Elephant
+      for (int i = 0; i < 16; i++) {
+        vec4 tr = uTrail[i];
+        if (tr.w > 0.1) {
+          float dt = length(wp.xz - tr.xz);
+          ink = max(ink, smoothstep(tr.w, tr.w * 0.25, dt) * 0.88);
+        }
+      }
+      // 4. Expanding Trumpet Ink Shockwave ([SPACE])
+      float waveRing = 0.0;
+      if (uPulseWave.w > 0.0) {
+        float dw = length(wp.xz - uPulseWave.xz);
+        float waveFade = clamp(1.0 - uPulseWave.w / 34.0, 0.0, 1.0);
+        waveRing = smoothstep(2.4, 0.0, abs(dw - uPulseWave.w)) * waveFade;
+        float insideWave = smoothstep(uPulseWave.w + 0.5, max(0.0, uPulseWave.w - 3.0), dw) * waveFade;
+        ink = max(ink, insideWave);
+      }
+      vInked = clamp(ink, 0.0, 1.0);
+      vWaveRing = waveRing;
+
+      // 1. Organic wind waves sweeping across Trees (uKind == 2.0) — livelier once inked!
+      if (abs(uKind - 2.0) < 0.3) {
+        float h = clamp((wp.y - 0.5) / 8.0, 0.0, 1.0);
+        float windAmp = mix(0.06, 0.24, vInked) + waveRing * 0.28;
+        float gust = sin(wp.x * 0.35 + wp.z * 0.28 + uTime * 1.75)
+                   + 0.45 * cos(wp.x * 0.7 - wp.z * 0.5 + uTime * 2.8);
+        wp.x += gust * h * h * windAmp;
+        wp.z += gust * h * h * (windAmp * 0.75);
+      }
+
+      // 2. Wildflowers & Grass (uKind == 5.0): droop when dormant/uninked, spring upright & bloom when inked!
+      if (abs(uKind - 5.0) < 0.3) {
+        float h = clamp(wp.y / 1.0, 0.0, 1.2);
+        wp.y *= mix(0.62, 1.06, vInked);
+        wp.y += (vLifeBoost * 0.16 + waveRing * 0.32) * h;
+        wp.x += sin(wp.x * 1.4 + wp.z * 1.2 + uTime * 3.2) * 0.09 * h * (0.25 + 0.75 * vInked);
+        wp.z += cos(wp.z * 1.5 + uTime * 2.7) * 0.07 * h * (0.25 + 0.75 * vInked);
+        if (distEl < 1.8 && distEl > 0.01) {
+          vec2 pushDir = normalize(toEl);
+          wp.xz += pushDir * smoothstep(1.8, 0.4, distEl) * 0.35 * h;
+        }
+      }
+
+      vWorldPos = wp.xyz;
+      vNormalW = normalize(mat3(modelMatrix) * normal);
+      vViewDir = normalize(cameraPosition - wp.xyz);
+      gl_Position = projectionMatrix * viewMatrix * wp;
+    }
+  `,
+  fragmentShader: /* glsl */`
+    uniform vec3 uLightDir;
+    uniform float uKind;
+    uniform float uTime;
+    varying vec3 vNormalW;
+    varying vec3 vWorldPos;
+    varying vec3 vLocalPos;
+    varying vec3 vViewDir;
+    varying float vLifeBoost;
+    varying float vInked;
+    varying float vWaveRing;
+
+    void main() {
+      vec3 n = normalize(vNormalW);
+      vec3 v = normalize(vViewDir);
+      float dist = length(cameraPosition - vWorldPos);
+      // Dissolve distant background smoothly into warm Riso paper
+      float fog = smoothstep(72.0, 12.0, dist);
+      if (fog <= 0.005) {
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        return;
+      }
+
+      float ndl = clamp(dot(n, uLightDir) * 0.5 + 0.5, 0.0, 1.0);
+      float normSig = dot(n, vec3(0.54, 0.39, -0.44)) * 0.14;
+
+      float r = 0.0; // Ink coverage
+      float g = 0.0; // Warmth balance (0 = Leaf Green, 0.5 = Chartreuse/Yellow, 1.0 = Vermilion Orange)
+      float b = 0.0; // Class + facet signature (0.04 .. 0.68)
+
+      if (uKind < 0.5) {
+        // 0: MEADOW GROUND — 99% pure warm Riso cotton paper so the floor stays airy & un-muddy!
+        float topo = smoothstep(0.028, 0.0, abs(fract(vWorldPos.y * 0.75) - 0.5));
+        r = (0.006 + 0.045 * topo) * fog;
+        g = 0.40;
+        b = 0.06 + topo * 0.03;
+      } else if (uKind < 1.5) {
+        // 1: MEADOW PATH — Ultra-subtle warm trail whisper (no heavy stipple wash on the floor)
+        r = (0.026 + 0.022 * ndl) * fog;
+        g = 0.52;
+        b = 0.11 + normSig * 0.05;
+      } else if (uKind < 2.5) {
+        // 2: TREES — Smooth botanical gradient from Leaf Green boughs to sunlit Yellow/Vermilion tips!
+        float hGrad = smoothstep(1.4, 8.2, vWorldPos.y);
+        float upFacing = smoothstep(-0.15, 0.65, n.y);
+        r = (0.20 + 0.44 * pow(ndl, 1.2)) * fog;
+        g = clamp(0.16 + 0.62 * hGrad * upFacing * ndl + 0.16 * (1.0 - hGrad), 0.06, 0.90);
+        b = 0.42 + normSig * 0.68;
+      } else if (uKind < 3.5) {
+        // 3: MOSSY ROCKS — Soft sage & golden-yellow sunlit facets
+        r = (0.18 + 0.35 * ndl) * fog;
+        g = clamp(0.22 + 0.40 * clamp(n.y, 0.0, 1.0) * ndl, 0.10, 0.70);
+        b = 0.32 + normSig * 0.55;
+      } else if (uKind < 4.5) {
+        // 4: DISTANT MOUNTAINS — Discard non-contour pixels so the Risograph Sky Dome shines through behind the trees!
+        float mFog = smoothstep(85.0, 20.0, dist);
+        float contour = smoothstep(0.035, 0.0, abs(fract(vWorldPos.y * 0.55) - 0.5));
+        if (contour < 0.08) discard;
+        r = (0.12 * contour) * mFog;
+        g = 0.38;
+        b = (0.05 + contour * 0.08) * mFog;
+      } else if (uKind < 5.5) {
+        // 5: WILDFLOWERS & GRASS — Vivid Vermilion-Orange blossoms on top, Leaf-Green stems below!
+        float tipMask = smoothstep(0.15, 0.75, n.y * 0.6 + clamp(vLocalPos.y / 45.0, 0.0, 1.0) * 0.7);
+        r = (0.36 + 0.46 * ndl + 0.22 * vLifeBoost) * fog;
+        g = clamp(0.18 + 0.78 * tipMask, 0.14, 0.96);
+        b = 0.60 + normSig * 0.42;
+      } else {
+        // 6: LAKE WATER — Delicate cyan/green Riso wave ripples
+        float wave = sin(vWorldPos.x * 2.4 + uTime * 2.0) * cos(vWorldPos.z * 2.4 - uTime * 1.4);
+        float crest = smoothstep(0.45, 0.85, wave);
+        r = (0.16 + 0.38 * crest) * fog;
+        g = 0.10 + 0.25 * crest;
+        b = 0.26 + 0.16 * crest;
+      }
+
+      // Apply Faded Ghost Proof vs. Re-Inked Risograph State:
+      // Uninked regions (vInked == 0) fade to a 10% ghosted proof with zero warm Vermilion/Yellow;
+      // The expanding Trumpet Ink Shockwave (vWaveRing) blazes with Vermilion & Sunflower Yellow!
+      r = mix(r * 0.10, r, vInked) + vWaveRing * 0.58 * fog;
+      g = mix(0.0, g, vInked);
+      g = clamp(g + vWaveRing * 0.85, 0.0, 0.98);
+      // Soften facet contrast in uninked ghost zones so only delicate registration lines show
+      b = mix(b * 0.55, b, vInked);
+
+      gl_FragColor = vec4(clamp(r, 0.0, 1.0), clamp(g, 0.0, 1.0), clamp(b, 0.02, 0.68), 1.0);
+    }
+  `,
+});
+
+function makeWorldKindMat(kind) {
+  const m = worldRisoMat.clone();
+  m.uniforms = {
+    uLightDir:    sharedUniforms.uLightDir,
+    uTime:        sharedUniforms.uTime,
+    uElephantPos: sharedUniforms.uElephantPos,
+    uGlobalInk:   sharedUniforms.uGlobalInk,
+    uPulseWave:   sharedUniforms.uPulseWave,
+    uSanctuaries: sharedUniforms.uSanctuaries,
+    uTrail:       sharedUniforms.uTrail,
+    uKind:        { value: kind },
+  };
+  return m;
+}
+const matMeadow   = makeWorldKindMat(0.0);
+const matPath     = makeWorldKindMat(1.0);
+const matTree     = makeWorldKindMat(2.0);
+const matRock     = makeWorldKindMat(3.0);
+const matMountain = makeWorldKindMat(4.0);
+const matFlower   = makeWorldKindMat(5.0);
+const matWater    = makeWorldKindMat(6.0);
+
+const rawMeadowMat   = new THREE.MeshLambertMaterial({ color: 0x769448 });
+const rawPathMat     = new THREE.MeshLambertMaterial({ color: 0xd4a656 });
+const rawTreeMat     = new THREE.MeshLambertMaterial({ color: 0x45822c });
+const rawRockMat     = new THREE.MeshLambertMaterial({ color: 0x6b7862 });
+const rawMountainMat = new THREE.MeshLambertMaterial({ color: 0x5c7552 });
+const rawFlowerMat   = new THREE.MeshLambertMaterial({ color: 0xf05218 });
+const rawWaterMat    = new THREE.MeshLambertMaterial({ color: 0x2c889e });
+
+// ---------------------------------------------------------------- Risograph Botanical Sky Dome + Equirectangular HDRI Support
+// B = 0.008 identifies Sky in the Riso post-processor so it prints with zero dark outlines,
+// combining Registration Cyan zenith stipple, warm Sunflower Yellow + Vermilion sun & cloud crests,
+// and creamy warm-paper cloud bodies (or live equirectangular HDRI luminance separation if loaded via ?hdri=url).
+const skyRisoMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide,
+  depthWrite: false,
+  uniforms: {
+    uTime:    sharedUniforms.uTime,
+    uSkyInk:  sharedUniforms.uSkyInk,
+    uUseHDRI: { value: 0.0 },
+    tHDRI:    { value: null },
+  },
+  vertexShader: /* glsl */`
+    varying vec3 vDir;
+    void main() {
+      vDir = normalize(position);
+      vec4 wp = modelMatrix * vec4(position + cameraPosition, 1.0);
+      gl_Position = projectionMatrix * viewMatrix * wp;
+    }
+  `,
+  fragmentShader: /* glsl */`
+    uniform float uTime;
+    uniform float uSkyInk;
+    uniform float uUseHDRI;
+    uniform sampler2D tHDRI;
+    varying vec3 vDir;
+
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+    }
+    float vnoise(vec2 p) {
+      vec2 i = floor(p), f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      return mix(
+        mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
+        f.y
+      );
+    }
+    float fbm(vec2 p) {
+      float v = 0.0, a = 0.5;
+      for (int i = 0; i < 4; i++) {
+        v += a * vnoise(p);
+        p = p * 2.03 + vec2(1.7, 9.2);
+        a *= 0.5;
+      }
+      return v;
+    }
+
+    void main() {
+      vec3 d = normalize(vDir);
+      if (uUseHDRI > 0.5) {
+        // Sample equirectangular HDRI sky map and separate into Warm (R: Yellow/Vermilion) & Cool (G: Cyan) Riso plates
+        vec2 uv = vec2(atan(d.z, d.x) * 0.1591549 + 0.5, asin(clamp(d.y, -1.0, 1.0)) * 0.3183099 + 0.5);
+        vec3 hdr = texture2D(tHDRI, uv).rgb;
+        vec3 mapped = hdr / (hdr + vec3(1.0)); // Reinhard tone map
+        float warm = clamp(mapped.r * 0.65 + mapped.g * 0.35 - mapped.b * 0.25, 0.0, 1.0) * uSkyInk;
+        float cool = clamp(mapped.b * 0.85 - mapped.r * 0.30, 0.0, 1.0) * (0.35 + 0.65 * uSkyInk);
+        gl_FragColor = vec4(warm, cool, 0.008, 1.0);
+        return;
+      }
+
+      float elev = clamp(d.y, 0.0, 1.0);
+      // Botanical Print Sun positioned above the forest glade
+      vec3 sunDir = normalize(vec3(-0.35, 0.26, 0.90));
+      float sunCos = clamp(dot(d, sunDir), 0.0, 1.0);
+      float sunCore = smoothstep(0.9965, 0.9985, sunCos);
+      // Concentric Riso woodcut/screenprint sun halo rings
+      float sunAngle = acos(clamp(sunCos, -1.0, 1.0));
+      float haloRings = smoothstep(0.32, 0.02, sunAngle) * (0.55 + 0.45 * sin(sunAngle * 52.0 - uTime * 0.8));
+
+      // Drifting layered botanical clouds in sky dome projection
+      vec2 skyUV = d.xz / (max(d.y, 0.08) + 0.22);
+      float c1 = fbm(skyUV * 1.45 + vec2(uTime * 0.018, -uTime * 0.012));
+      float c2 = fbm(skyUV * 2.90 - vec2(uTime * 0.014, uTime * 0.020));
+      float cloudBody = smoothstep(0.47, 0.68, c1 * 0.68 + c2 * 0.32) * smoothstep(0.03, 0.18, elev);
+      float cloudSunCrest = smoothstep(0.44, 0.56, c1) * (1.0 - smoothstep(0.58, 0.72, c1)) * smoothstep(0.04, 0.25, elev);
+
+      // Warm ink (R): Sun core + concentric sun halo + warm horizon glow + sunlit cloud rims (scales with awakened plates!)
+      float horizonGlow = pow(1.0 - elev, 3.2) * 0.42;
+      float rWarm = clamp(sunCore * 0.96 + haloRings * 0.58 + horizonGlow + cloudSunCrest * 0.62, 0.0, 0.96);
+      rWarm *= (1.0 - cloudBody * 0.75) * uSkyInk;
+
+      // Cool Cyan ink (G): Registration Cyan zenith sky gradient, parted by warm-paper clouds and sun halo
+      float cyanZenith = smoothstep(0.06, 0.52, elev) * 0.62;
+      float gCool = clamp(cyanZenith * (1.0 - cloudBody * 0.92) * (1.0 - haloRings * 0.65), 0.0, 0.85) * (0.38 + 0.62 * uSkyInk);
+
+      gl_FragColor = vec4(rWarm, gCool, 0.008, 1.0);
+    }
+  `,
+});
+
+const rawSkyMat = new THREE.MeshBasicMaterial({ color: 0xdcebf2, side: THREE.BackSide, depthWrite: false });
+const skyDome = new THREE.Mesh(new THREE.SphereGeometry(220, 48, 24), skyRisoMat);
+skyDome.renderOrder = -1;
+scene.add(skyDome);
+
+// Optional Equirectangular HDRI Loader (?hdri=path/to/sky.hdr or window.loadHDRISky(url))
+window.loadHDRISky = function(url) {
+  new RGBELoader().load(url, tex => {
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    skyRisoMat.uniforms.tHDRI.value = tex;
+    skyRisoMat.uniforms.uUseHDRI.value = 1.0;
+    scene.environment = tex;
+  });
+};
+if (params.has('hdri')) {
+  window.loadHDRISky(params.get('hdri'));
+}
+
+// ---------------------------------------------------------------- load both assets in parallel
+const [gltf, fbx] = await Promise.all([
+  new GLTFLoader().loadAsync('./elephant.glb'),
+  new FBXLoader().loadAsync('./forest.fbx'),
+]);
+
+// ---------------------------------------------------------------- setup forest world & scale
+fbx.scale.setScalar(WORLD_SCALE);
+fbx.position.set(12.0, 10.39, 0.0);
+scene.add(fbx);
+fbx.updateMatrixWorld(true);
+
+const walkableMeshes = [];
+const obstacles = [];
+const worldMeshMaterials = new Map();
+let grassCounter = 0;
+
+fbx.traverse(o => {
+  if (!o.isMesh) return;
+  const n = o.name;
+
+  if (n.startsWith('PP_Grass')) {
+    grassCounter++;
+    if (grassCounter % 6 !== 0) {
+      o.visible = false;
+      return;
+    }
+    worldMeshMaterials.set(o, { riso: matFlower, raw: rawMeadowMat });
+    return;
+  }
+  if (
+    n.startsWith('PP_Daffodil') ||
+    n.startsWith('PP_Hyacinth') ||
+    n.startsWith('PP_Sunflower') ||
+    n.startsWith('PP_Mushroom')
+  ) {
+    worldMeshMaterials.set(o, { riso: matFlower, raw: rawFlowerMat });
+    return;
+  }
+
+  let risoM = matTree, rawM = rawTreeMat;
+  if (n.startsWith('PP_Meadow_Path')) {
+    risoM = matPath; rawM = rawPathMat;
+    walkableMeshes.push(o);
+  } else if (n.startsWith('PP_Meadow') || n.startsWith('PP_Lake_Ground_0')) {
+    risoM = matMeadow; rawM = rawMeadowMat;
+    walkableMeshes.push(o);
+  } else if (n.startsWith('PP_Lake_Ground_Water')) {
+    risoM = matWater; rawM = rawWaterMat;
+  } else if (n.startsWith('PP_Forest_Mountain')) {
+    risoM = matMountain; rawM = rawMountainMat;
+    walkableMeshes.push(o);
+  } else if (n.startsWith('PP_Rock')) {
+    const box = new THREE.Box3().setFromObject(o);
+    const c = box.getCenter(new THREE.Vector3());
+    const s = box.getSize(new THREE.Vector3());
+    if (Math.hypot(c.x, c.z) < 4.2 || (Math.abs(c.x) < 2.8 && c.z > 0 && c.z < 16.5)) {
+      o.visible = false;
+      return;
+    }
+    risoM = matRock; rawM = rawRockMat;
+    if (Math.max(s.x, s.z) > 1.8) {
+      obstacles.push({ x: c.x, z: c.z, r: Math.max(s.x, s.z) * 0.38 });
+    }
+  } else if (n.startsWith('PP_Tree') || n.startsWith('PP_Birch_Tree')) {
+    risoM = matTree; rawM = rawTreeMat;
+    const box = new THREE.Box3().setFromObject(o);
+    const c = box.getCenter(new THREE.Vector3());
+    obstacles.push({ x: c.x, z: c.z, r: 0.75 });
+  }
+
+  worldMeshMaterials.set(o, { riso: risoM, raw: rawM });
+});
+
+const downRay = new THREE.Raycaster();
+const downOrigin = new THREE.Vector3();
+const DOWN = new THREE.Vector3(0, -1, 0);
+function sampleWorldY(x, z, fallbackY = 0) {
+  downOrigin.set(x, 60, z);
+  downRay.set(downOrigin, DOWN);
+  const hits = downRay.intersectObjects(walkableMeshes, false);
+  return hits.length ? hits[0].point.y : fallbackY;
+}
+
+// ---------------------------------------------------------------- setup elephant & scale
+const model = gltf.scene;
+const rawElephantMats = new Map();
+const risoElephantMats = new Map();
+
+model.traverse(o => {
+  if (o.isMesh) {
+    o.frustumCulled = false;
+    rawElephantMats.set(o, o.material);
+
+    // SkinnedMesh-compatible Standard Material:
+    // R = Key sculptural light + bump wrinkles
+    // G = Warm Vermilion/Yellow rim & dorsal light
+    // B = 0.88 constant tag (emissive.b = 0.88, color.b = 0.0)
+    const m = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(1.0, 1.0, 0.0),
+      roughness: 0.48,
+      metalness: 0.02,
+      bumpMap: o.material?.normalMap || o.material?.map || null,
+      bumpScale: 0.075,
+      emissive: new THREE.Color(0.16, 0.12, 0.88),
+    });
+    risoElephantMats.set(o, m);
+  }
+});
+
+const character = new THREE.Group();
+const bodyRig = new THREE.Group();
+const inner = new THREE.Group();
+character.add(bodyRig);
+bodyRig.add(inner);
+inner.add(model);
+inner.scale.setScalar(ELEPHANT_SCALE);
+scene.add(character);
+
+const bone = n => model.getObjectByName(n) || model.getObjectByName(n.replace(/\./g, ''));
+const wpos = (o, out = new THREE.Vector3()) => (model.updateMatrixWorld(true), o.getWorldPosition(out));
+
+const hoofNames = { LH: 'DEF-r_hoof.L', RH: 'DEF-r_hoof.R', LF: 'DEF-f_hoof.L', RF: 'DEF-f_hoof.R' };
+const centre = new THREE.Vector3();
+Object.values(hoofNames).forEach(n => centre.add(wpos(bone(n))));
+centre.multiplyScalar(0.25);
+const HIP_PIVOT = 1.45 * ELEPHANT_SCALE;
+const GROUND_LIFT = -0.04 * ELEPHANT_SCALE;
+bodyRig.position.y = HIP_PIVOT;
+inner.position.set(-centre.x, -HIP_PIVOT + GROUND_LIFT, -centre.z);
+character.position.y = sampleWorldY(0, 0, 0);
+character.updateMatrixWorld(true);
+
+// ---------------------------------------------------------------- Subtle Footstep Micro-Dust Particles (No Butterflies / No Floor Rings)
+// B = 0.95 identifies subtle footstep dust particles so they print as delicate warm-sage/golden Riso specks without dark outlines
+const DUST_COUNT = 64;
+const dustPositions = new Float32Array(DUST_COUNT * 3);
+const dustAlphas = new Float32Array(DUST_COUNT);
+const dustMotes = [];
+for (let i = 0; i < DUST_COUNT; i++) {
+  dustPositions[i * 3 + 1] = -999;
+  dustAlphas[i] = 0;
+  dustMotes.push({ x: 0, y: -999, z: 0, vx: 0, vy: 0, vz: 0, age: 99, maxAge: 0.85 });
+}
+
+const dustGeo = new THREE.BufferGeometry();
+dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+dustGeo.setAttribute('aAlpha', new THREE.BufferAttribute(dustAlphas, 1));
+
+const dustRisoMat = new THREE.ShaderMaterial({
+  transparent: false,
+  vertexShader: /* glsl */`
+    attribute float aAlpha;
+    varying float vAlpha;
+    void main() {
+      vAlpha = aAlpha;
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      gl_Position = projectionMatrix * mv;
+      gl_PointSize = clamp(24.0 / max(-mv.z, 1.0), 2.0, 5.5) * step(0.01, aAlpha);
+    }
+  `,
+  fragmentShader: /* glsl */`
+    varying float vAlpha;
+    void main() {
+      if (vAlpha <= 0.02) discard;
+      vec2 p = gl_PointCoord - vec2(0.5);
+      if (dot(p, p) > 0.25) discard;
+      gl_FragColor = vec4(vAlpha * 0.72, vAlpha * 0.55, 0.95, 1.0);
+    }
+  `,
+});
+
+const dustPoints = new THREE.Points(dustGeo, dustRisoMat);
+dustPoints.frustumCulled = false;
+scene.add(dustPoints);
+let nextDustIdx = 0;
+
+function spawnFootstepBloom(wx, wy, wz) {
+  for (let k = 0; k < 8; k++) {
+    const dm = dustMotes[nextDustIdx];
+    nextDustIdx = (nextDustIdx + 1) % DUST_COUNT;
+    const ang = (k / 8) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+    const rad = 0.14 + Math.random() * 0.16;
+    dm.x = wx + Math.cos(ang) * rad;
+    dm.y = wy + 0.05 + Math.random() * 0.05;
+    dm.z = wz + Math.sin(ang) * rad;
+    dm.vx = Math.cos(ang) * (0.22 + Math.random() * 0.20);
+    dm.vy = 0.32 + Math.random() * 0.28;
+    dm.vz = Math.sin(ang) * (0.22 + Math.random() * 0.20);
+    dm.age = 0;
+    dm.maxAge = 0.65 + Math.random() * 0.35;
+  }
+}
+
+// ---------------------------------------------------------------- Narrative Anchor: "The Last Inkwell" (5 Botanical Sanctuary Astrolabes)
+// B = 0.74 -> Dormant Sanctuary Astrolabe (prints in crisp Registration Cyan crop-mark ink)
+// B = 0.98 -> Awakened Sanctuary Astrolabe (blazes in 100% Sunflower Yellow + Fluorescent Vermilion ink)
+const matDormantAstrolabe = new THREE.ShaderMaterial({
+  side: THREE.DoubleSide,
+  vertexShader: /* glsl */`
+    void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+  `,
+  fragmentShader: /* glsl */`
+    void main() { gl_FragColor = vec4(0.85, 0.90, 0.74, 1.0); }
+  `,
+});
+
+const matAwakenedAstrolabe = new THREE.ShaderMaterial({
+  side: THREE.DoubleSide,
+  vertexShader: /* glsl */`
+    void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+  `,
+  fragmentShader: /* glsl */`
+    void main() { gl_FragColor = vec4(0.96, 0.92, 0.98, 1.0); }
+  `,
+});
+
+const SANCTUARY_DEFS = [
+  {
+    name: 'PLATE I · THE SUNLIT CLEARING',
+    short: 'SUNLIT CLEARING',
+    x: 0.4, z: 6.4,
+    poem: 'The first drum rings out — Sunflower Yellow wakes the dormant stems along the glade.',
+  },
+  {
+    name: 'PLATE II · THE MUSHROOM GROVE',
+    short: 'MUSHROOM GROVE',
+    x: -7.8, z: 11.8,
+    poem: 'Fluorescent Vermilion seeps into spore and cap; the forest floor remembers warmth.',
+  },
+  {
+    name: 'PLATE III · THE BIRCH ARCHWAY',
+    short: 'BIRCH ARCHWAY',
+    x: 9.2, z: 13.0,
+    poem: 'Botanical Leaf Green climbs the pale bark; wind returns to the upper boughs.',
+  },
+  {
+    name: 'PLATE IV · THE MIRROR LAKE',
+    short: 'MIRROR LAKE',
+    x: -10.5, z: -7.2,
+    poem: 'Registration Cyan ripples across still water; the sky finds its reflection.',
+  },
+  {
+    name: 'PLATE V · THE PINE OVERLOOK',
+    short: 'PINE OVERLOOK',
+    x: 9.8, z: -8.8,
+    poem: 'All four drums lock into registration — the botanical wilderness is printed whole again.',
+  },
+];
+
+const sanctuaries = [];
+const ringOuterGeo = new THREE.TorusGeometry(0.78, 0.032, 8, 24);
+const ringInnerGeo = new THREE.TorusGeometry(0.52, 0.028, 8, 20);
+const seedCrystalGeo = new THREE.OctahedronGeometry(0.28, 0);
+const beaconGeo = new THREE.CylinderGeometry(0.014, 0.014, 9.5, 6);
+const plinthGeo = new THREE.CylinderGeometry(0.42, 0.56, 0.45, 8);
+const cropRingGeo = new THREE.RingGeometry(1.15, 1.24, 32);
+cropRingGeo.rotateX(-Math.PI / 2);
+
+SANCTUARY_DEFS.forEach((def, idx) => {
+  const gy = sampleWorldY(def.x, def.z, 0);
+  const group = new THREE.Group();
+  group.position.set(def.x, gy, def.z);
+  scene.add(group);
+
+  const plinth = new THREE.Mesh(plinthGeo, matRock);
+  plinth.position.y = 0.22;
+  group.add(plinth);
+
+  const astrolabe = new THREE.Group();
+  astrolabe.position.y = 1.75;
+  group.add(astrolabe);
+
+  const outerRing = new THREE.Mesh(ringOuterGeo, matDormantAstrolabe);
+  const innerRing = new THREE.Mesh(ringInnerGeo, matDormantAstrolabe);
+  const seed = new THREE.Mesh(seedCrystalGeo, matDormantAstrolabe);
+  const beacon = new THREE.Mesh(beaconGeo, matDormantAstrolabe);
+  beacon.position.y = 4.75;
+  const cropRing = new THREE.Mesh(cropRingGeo, matDormantAstrolabe);
+  cropRing.position.y = 0.04;
+
+  astrolabe.add(outerRing, innerRing, seed);
+  group.add(beacon, cropRing);
+
+  sharedUniforms.uSanctuaries.value[idx].set(def.x, gy, def.z, 0.0);
+
+  sanctuaries.push({
+    idx,
+    ...def,
+    y: gy,
+    group,
+    astrolabe,
+    outerRing,
+    innerRing,
+    seed,
+    beacon,
+    cropRing,
+    awakened: false,
+    inkRadius: 0.0,
+    targetRadius: 0.0,
+  });
+});
+
+// Footpath Ink Trail (drops a persistent 4.8m ink stamp every 2.0m as the elephant walks)
+let nextTrailIdx = 0;
+let lastTrailX = 0, lastTrailZ = 0;
+sharedUniforms.uTrail.value[0].set(0, character.position.y, 0, 5.2);
+nextTrailIdx = 1;
+
+// Generative WebAudio Elephant Trumpet + Risograph Harmonium Chord
+let audioCtx = null;
+function playTrumpetAndPrintSound(awakenedNewPlate = false) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+
+    // 1. Warm Elephant Brass Call (formant-filtered saw + triangle glide)
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const filter = audioCtx.createBiquadFilter();
+    const gain = audioCtx.createGain();
+
+    osc1.type = 'sawtooth';
+    osc2.type = 'triangle';
+    osc1.frequency.setValueAtTime(110, now);
+    osc1.frequency.exponentialRampToValueAtTime(220, now + 0.22);
+    osc1.frequency.exponentialRampToValueAtTime(196, now + 0.65);
+    osc1.frequency.exponentialRampToValueAtTime(130, now + 1.25);
+
+    osc2.frequency.setValueAtTime(220, now);
+    osc2.frequency.exponentialRampToValueAtTime(440, now + 0.22);
+    osc2.frequency.exponentialRampToValueAtTime(392, now + 0.65);
+    osc2.frequency.exponentialRampToValueAtTime(260, now + 1.25);
+
+    filter.type = 'lowpass';
+    filter.Q.value = 4.5;
+    filter.frequency.setValueAtTime(260, now);
+    filter.frequency.exponentialRampToValueAtTime(980, now + 0.25);
+    filter.frequency.exponentialRampToValueAtTime(340, now + 1.25);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.16, now + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.30);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 1.32);
+    osc2.stop(now + 1.32);
+
+    // 2. Shimmering Botanical Chord when a Sanctuary Plate awakens
+    if (awakenedNewPlate) {
+      const notes = [261.63, 329.63, 392.00, 523.25, 659.25];
+      notes.forEach((freq, i) => {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(freq, now + 0.15 + i * 0.07);
+        g.gain.setValueAtTime(0.001, now + 0.15 + i * 0.07);
+        g.gain.linearRampToValueAtTime(0.06, now + 0.25 + i * 0.07);
+        g.gain.exponentialRampToValueAtTime(0.0008, now + 2.4 + i * 0.1);
+        o.connect(g);
+        g.connect(audioCtx.destination);
+        o.start(now + 0.15 + i * 0.07);
+        o.stop(now + 2.5 + i * 0.1);
+      });
+    }
+  } catch (e) {
+    // Ignore audio autoplay restrictions in headless mode
+  }
+}
+
+let fieldNoteTimeout = null;
+function showFieldNote(title, body, durationMs = 7500) {
+  const fnEl = document.getElementById('field-note');
+  document.getElementById('fn-title').textContent = title;
+  document.getElementById('fn-body').textContent = body;
+  fnEl.classList.add('visible');
+  if (fieldNoteTimeout) clearTimeout(fieldNoteTimeout);
+  fieldNoteTimeout = setTimeout(() => fnEl.classList.remove('visible'), durationMs);
+}
+
+// Show opening narrative card briefly on load
+setTimeout(() => {
+  showFieldNote(
+    'UNINKED REGISTRATION PROOF',
+    'Only the elephant carries the four living inks. Walk to the Cyan Astrolabe ahead and press [SPACE] to trumpet color across the faded forest.',
+    8000
+  );
+}, 600);
+
+function awakenSanctuary(s) {
+  if (s.awakened) return;
+  s.awakened = true;
+  s.targetRadius = 26.0;
+  s.outerRing.material = matAwakenedAstrolabe;
+  s.innerRing.material = matAwakenedAstrolabe;
+  s.seed.material = matAwakenedAstrolabe;
+  s.cropRing.material = matAwakenedAstrolabe;
+  s.beacon.visible = false; // Clear vertical crop hairline once inked
+
+  const awakenedCount = sanctuaries.filter(x => x.awakened).length;
+  const dots = document.querySelectorAll('#plate-dots .pdot');
+  dots.forEach((d, i) => d.classList.toggle('active', i < awakenedCount));
+  document.getElementById('plates-label').textContent = `${awakenedCount} / 5 SANCTUARY PLATES INKED`;
+
+  showFieldNote(s.name, s.poem, 8500);
+}
+
+let trumpetTimer = 0.0;
+let pulseWaveActive = false;
+let storyMode = params.get('ink') !== '1';
+
+function triggerTrumpetInkWave() {
+  trumpetTimer = 1.35;
+  pulseWaveActive = true;
+  const fwdX = Math.sin(heading) * 1.6;
+  const fwdZ = Math.cos(heading) * 1.6;
+  const wx = character.position.x + fwdX;
+  const wz = character.position.z + fwdZ;
+  sharedUniforms.uPulseWave.value.set(wx, character.position.y, wz, 0.2);
+
+  // Check if any uninked sanctuary is within the 22m wave reach
+  let willAwaken = false;
+  for (const s of sanctuaries) {
+    if (!s.awakened && Math.hypot(s.x - wx, s.z - wz) < 22.0) {
+      willAwaken = true;
+    }
+  }
+  playTrumpetAndPrintSound(willAwaken);
+  spawnFootstepBloom(wx, character.position.y + 1.2, wz);
+}
+
+// ---------------------------------------------------------------- legs & secondary bones
+const legDefs = {
+  LH: { upper: 'DEF-thigh.L',     lower: 'DEF-lower_leg.L', foot: 'DEF-hind_foot.L', toe: 'DEF-r_toe.L', hoof: 'DEF-r_hoof.L', fore: false },
+  RH: { upper: 'DEF-thigh.R',     lower: 'DEF-lower_leg.R', foot: 'DEF-hind_foot.R', toe: 'DEF-r_toe.R', hoof: 'DEF-r_hoof.R', fore: false },
+  LF: { upper: 'DEF-upper_arm.L', lower: 'DEF-forearm.L',   foot: 'DEF-forefoot.L',  toe: 'DEF-f_toe.L', hoof: 'DEF-f_hoof.L', fore: true },
+  RF: { upper: 'DEF-upper_arm.R', lower: 'DEF-forearm.R',   foot: 'DEF-forefoot.R',  toe: 'DEF-f_toe.R', hoof: 'DEF-f_hoof.R', fore: true },
+};
+
+const restQ = new Map();
+const remember = b => { if (b && !restQ.has(b)) restQ.set(b, b.quaternion.clone()); return b; };
+const charInv = new THREE.Matrix4().copy(character.matrixWorld).invert();
+
+const legs = Object.entries(legDefs).map(([key, d]) => {
+  const leg = { key, fore: d.fore, offset: OFFSETS[key], wasSwinging: false };
+  ['upper', 'lower', 'foot', 'toe', 'hoof'].forEach(k => leg[k] = remember(bone(d[k])));
+  leg.homeHoof = wpos(leg.hoof).applyMatrix4(charInv);
+  leg.hoofToToe = wpos(leg.toe).applyMatrix4(charInv).sub(leg.homeHoof);
+  leg.toeRestWorldQ = leg.toe.getWorldQuaternion(new THREE.Quaternion());
+  return leg;
+});
+
+const trunk = ['DEF-tail', ...Array.from({ length: 11 }, (_, i) => `DEF-tail.${String(i + 1).padStart(2, '0')}`)].map(bone).filter(Boolean).map(remember);
+const tail = [1, 2, 3, 4, 5].map(i => bone(`DEF-tail.00${i}`)).filter(Boolean).map(remember);
+const neck = [1, 2, 3, 4].map(i => bone(`DEF-neck.00${i}`)).filter(Boolean).map(remember);
+const headBone = remember(bone('DEF-head'));
+const earL = remember(bone('DEF-ear.L')), earR = remember(bone('DEF-ear.R'));
+
+// ---------------------------------------------------------------- Full-Resolution Risograph Post-Process Shader (Reference-Matched)
+document.getElementById('loading')?.remove();
+
+const sceneRT = new THREE.WebGLRenderTarget(1, 1, {
+  minFilter: THREE.LinearFilter,
+  magFilter: THREE.LinearFilter,
+});
+
+const risoPostMat = new THREE.ShaderMaterial({
+  uniforms: {
+    tScene:     { value: sceneRT.texture },
+    uRes:       { value: new THREE.Vector2(innerWidth, innerHeight) },
+    uDpr:       { value: renderer.getPixelRatio() },
+    uTime:      { value: 0.0 },
+    uGrainMode: { value: grainIdx },
+    uPaper:     { value: PALETTES[0].paper.clone() },
+    uYellow:    { value: PALETTES[0].yellow.clone() },
+    uVermilion: { value: PALETTES[0].vermilion.clone() },
+    uGreen:     { value: PALETTES[0].green.clone() },
+    uCyan:      { value: PALETTES[0].cyan.clone() },
+  },
+  vertexShader: /* glsl */`
+    void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }
+  `,
+  fragmentShader: /* glsl */`
+    uniform sampler2D tScene;
+    uniform vec2 uRes;
+    uniform float uDpr, uTime, uGrainMode;
+    uniform vec3 uPaper, uYellow, uVermilion, uGreen, uCyan;
+
+    float hash12(vec2 p) {
+      vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+      p3 += dot(p3, p3.yzx + 33.33);
+      return fract((p3.x + p3.y) * p3.z);
+    }
+
+    float noise2D(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      float a = hash12(i);
+      float b = hash12(i + vec2(1.0, 0.0));
+      float c = hash12(i + vec2(0.0, 1.0));
+      float d = hash12(i + vec2(1.0, 1.0));
+      return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+    }
+
+    // Velvety continuous-tone Risograph mezzotint grain (modeled directly on the orchid mantis print!)
+    float risoTransfer(vec2 fragPx, float density, float angleRad, float freq, float grainMode) {
+      if (density <= 0.005) return 0.0;
+      vec2 p = fragPx / uDpr;
+
+      float nFine = hash12(floor(p * 1.45));
+      float nMid  = noise2D(p * 0.72);
+      float nSoft = noise2D(p * 0.28);
+      float grain = nFine * 0.42 + nMid * 0.38 + nSoft * 0.20;
+
+      vec2 rot = vec2(
+        p.x * cos(angleRad) - p.y * sin(angleRad),
+        p.x * sin(angleRad) + p.y * cos(angleRad)
+      );
+      float hatch = sin(rot.y * freq + nMid * 2.0) * 0.5 + 0.5;
+
+      float screenVal = grain;
+      if (grainMode > 0.5 && grainMode < 1.5) {
+        screenVal = mix(grain, hatch, 0.48);
+      } else if (grainMode > 1.5) {
+        screenVal = mix(nMid, hatch, 0.55);
+      } else {
+        screenVal = mix(grain, hatch, 0.14);
+      }
+
+      // Wide, velvety transition window so ink looks powdery & luminous rather than harsh binary dots
+      float d = clamp(density, 0.0, 1.0);
+      return clamp((d + (screenVal - 0.5) * 0.46 * (1.0 - d * 0.35)), 0.0, 1.0);
+    }
+
+    void main() {
+      vec2 uv = gl_FragCoord.xy / uRes;
+      vec2 px = 1.0 / uRes;
+      vec2 pLogical = gl_FragCoord.xy / uDpr;
+
+      // 1. Tactile Cotton Paper Ground (matching the warm textured off-white sheet in the reference)
+      float fiberA = noise2D(pLogical * 0.52);
+      float fiberB = hash12(floor(pLogical * 1.15));
+      float paperTooth = (fiberA - 0.5) * 0.036 + (fiberB - 0.5) * 0.026;
+      vec3 paperCol = clamp(uPaper + vec3(paperTooth, paperTooth * 0.92, paperTooth * 0.78), 0.0, 1.0);
+
+      // 2. Risograph Drum Misregistration Offsets (creates the cyan/yellow silhouette fringes from the reference!)
+      vec2 offYellow    = vec2(-2.0,  1.2) * uDpr * px;
+      vec2 offVermilion = vec2( 1.2,  1.4) * uDpr * px;
+      vec2 offGreen     = vec2(-0.5, -0.8) * uDpr * px;
+      vec2 offCyan      = vec2( 2.4, -1.6) * uDpr * px;
+
+      vec4 sCenter    = texture2D(tScene, uv);
+      vec4 sYellow    = texture2D(tScene, uv + offYellow);
+      vec4 sVermilion = texture2D(tScene, uv + offVermilion);
+      vec4 sGreen     = texture2D(tScene, uv + offGreen);
+      vec4 sCyan      = texture2D(tScene, uv + offCyan);
+
+      vec4 sR = texture2D(tScene, uv + vec2( 1.5 * uDpr * px.x, 0.0));
+      vec4 sL = texture2D(tScene, uv + vec2(-1.5 * uDpr * px.x, 0.0));
+      vec4 sU = texture2D(tScene, uv + vec2(0.0,  1.5 * uDpr * px.y));
+      vec4 sD = texture2D(tScene, uv + vec2(0.0, -1.5 * uDpr * px.y));
+
+      float isElCenter   = step(0.78, sCenter.b) * (1.0 - step(0.91, sCenter.b));
+      float isDustSprite = step(0.92, sCenter.b) * (1.0 - step(0.96, sCenter.b));
+      float isAwakenedAstrolabe = step(0.96, sCenter.b);
+      float isDormantAstrolabe  = step(0.71, sCenter.b) * (1.0 - step(0.77, sCenter.b));
+
+      // Soft warm-paper breathing halo around the elephant so background trees never clutter its outline
+      float elHaloProbe = max(
+        max(step(0.78, texture2D(tScene, uv + vec2( 5.0 * uDpr * px.x, 0.0)).b) * (1.0 - step(0.91, texture2D(tScene, uv + vec2( 5.0 * uDpr * px.x, 0.0)).b)),
+            step(0.78, texture2D(tScene, uv + vec2(-5.0 * uDpr * px.x, 0.0)).b) * (1.0 - step(0.91, texture2D(tScene, uv + vec2(-5.0 * uDpr * px.x, 0.0)).b))),
+        max(step(0.78, texture2D(tScene, uv + vec2(0.0,  5.0 * uDpr * px.y)).b) * (1.0 - step(0.91, texture2D(tScene, uv + vec2(0.0,  5.0 * uDpr * px.y)).b)),
+            step(0.78, texture2D(tScene, uv + vec2(0.0, -5.0 * uDpr * px.y)).b) * (1.0 - step(0.91, texture2D(tScene, uv + vec2(0.0, -5.0 * uDpr * px.y)).b)))
+      );
+      float bgFadeNearElephant = (isElCenter < 0.5 && elHaloProbe > 0.5) ? 0.18 : 1.0;
+
+      // Facet & silhouette edge detection (drawn in Leaf Green / Vermilion / Cyan, NEVER black!)
+      float edgeB = abs(sCenter.b - sR.b) + abs(sCenter.b - sU.b) + abs(sCenter.b - sL.b) + abs(sCenter.b - sD.b);
+      float edgeR = abs(sCenter.r - sR.r) + abs(sCenter.r - sU.r);
+      float edge = clamp(edgeB * 2.4 + edgeR * 0.85, 0.0, 1.0);
+
+      float yPlate = 0.0;
+      float vPlate = 0.0;
+      float gPlate = 0.0;
+      float cPlate = 0.0;
+
+      if (isAwakenedAstrolabe > 0.5) {
+        // --- AWAKENED SANCTUARY ASTROLABE: BLAZING VERMILION & SUNFLOWER YELLOW ---
+        yPlate = 0.96;
+        vPlate = 0.90;
+        gPlate = 0.0;
+        cPlate = clamp(edge * 0.45, 0.0, 0.35);
+      } else if (isDormantAstrolabe > 0.5) {
+        // --- DORMANT SANCTUARY ASTROLABE: CRISP REGISTRATION CYAN BEACON ---
+        yPlate = 0.14;
+        vPlate = 0.0;
+        gPlate = 0.12;
+        cPlate = 0.88;
+      } else if (isDustSprite > 0.5) {
+        // --- SUBTLE FOOTSTEP MICRO-DUST PARTICLES ---
+        yPlate = clamp(sCenter.r * 0.72, 0.0, 0.65);
+        vPlate = clamp(sCenter.g * 0.42, 0.0, 0.35);
+        gPlate = clamp(sCenter.r * 0.25, 0.0, 0.22);
+        cPlate = 0.0;
+      } else if (
+        isElCenter > 0.5 ||
+        (step(0.78, sYellow.b) * (1.0 - step(0.91, sYellow.b))) > 0.5 ||
+        (step(0.78, sVermilion.b) * (1.0 - step(0.91, sVermilion.b))) > 0.5 ||
+        (step(0.78, sCyan.b) * (1.0 - step(0.91, sCyan.b))) > 0.5
+      ) {
+        // --- ELEPHANT: ORCHID MANTIS RISO COLOR SEPARATION ---
+        float elY = step(0.78, sYellow.b) * (1.0 - step(0.91, sYellow.b));
+        float elV = step(0.78, sVermilion.b) * (1.0 - step(0.91, sVermilion.b));
+        float elG = step(0.78, sGreen.b) * (1.0 - step(0.91, sGreen.b));
+        float elC = step(0.78, sCyan.b) * (1.0 - step(0.91, sCyan.b));
+
+        float keyY  = clamp(sYellow.r, 0.0, 1.0);
+        float warmY = clamp(sYellow.g, 0.0, 1.0);
+
+        float keyV  = clamp(sVermilion.r, 0.0, 1.0);
+        float warmV = clamp(sVermilion.g, 0.0, 1.0);
+
+        float keyG  = clamp(sGreen.r, 0.0, 1.0);
+        float warmG = clamp(sGreen.g, 0.0, 1.0);
+
+        float keyC  = clamp(sCyan.r, 0.0, 1.0);
+
+        // Creamy paper highlight on the bright key-lit ridges (forehead, tusks, trunk bridge, leg highlights)
+        float paperRim = smoothstep(0.76, 0.94, keyY * (1.0 - warmY * 0.38));
+        float paperRimV = smoothstep(0.76, 0.94, keyV * (1.0 - warmV * 0.38));
+
+        // 1. Fluorescent Vermilion Plate: blazes across the ears, head crown, dorsal ridge, trunk & warm contours
+        float vWarmZone = smoothstep(0.28, 0.70, warmV) * (1.0 - paperRimV * 0.95);
+        float vFringe = clamp(elV - isElCenter, 0.0, 1.0);
+        vPlate = elV * clamp(vWarmZone * 0.94 + vFringe * 0.78 + edge * warmV * 0.48, 0.0, 0.96);
+
+        // 2. Sunflower Yellow Plate: base luminous coat + guaranteed 96% underprint beneath all Vermilion (zero salmon/pink!)
+        float yBase = clamp((0.78 + 0.24 * keyY + 0.18 * warmY) * (1.0 - paperRim * 0.92), 0.0, 0.98);
+        yPlate = elY * max(yBase, smoothstep(0.04, 0.32, vPlate) * 0.96);
+
+        // 3. Botanical Leaf Green Plate: sculpts the torso, belly, legs, and skin wrinkles in vibrant Chartreuse -> Leaf Green!
+        float gSculpt = 1.0 - smoothstep(0.22, 0.84, keyG * 0.65 + warmG * 0.42);
+        float gSuppressByRed = smoothstep(0.32, 0.68, vWarmZone);
+        gPlate = elG * clamp((0.28 + 0.72 * gSculpt) * (1.0 - gSuppressByRed * 0.85) * (1.0 - paperRim * 0.92) + edge * (1.0 - gSuppressByRed) * 0.38, 0.0, 0.90);
+
+        // 4. Registration Cyan Plate: crisp misregistered silhouette fringe + deepest shadow creases!
+        float cFringe = clamp(elC - isElCenter, 0.0, 1.0);
+        float deepCrease = pow(clamp(1.0 - keyC - 0.18, 0.0, 1.0), 2.2) * (1.0 - vWarmZone * 0.75);
+        cPlate = elC * clamp(cFringe * 0.82 + deepCrease * 0.34 + edge * 0.24 * (1.0 - vWarmZone), 0.0, 0.78);
+      } else if (sCenter.b > 0.015) {
+        // --- FOREST WORLD: FADED GHOST PROOF vs. RE-INKED BOTANICAL PRINT ---
+        float lum   = sCenter.r * bgFadeNearElephant;
+        float warm  = sCenter.g;
+        float kindB = sCenter.b;
+
+        // Detect whether this pixel is in an uninked ghost region (warm == 0) vs. inked region (warm > 0)
+        float inkPresence = smoothstep(0.01, 0.12, warm);
+
+        float isMeadowOrPath = 1.0 - smoothstep(0.08, 0.18, kindB);
+        float worldScale = mix(0.68, 0.18, isMeadowOrPath) * bgFadeNearElephant;
+
+        // Yellow plate warms tree crowns, wildflowers, and sunlit meadow sweeps (only where inked!)
+        yPlate = clamp((lum * (0.45 + 0.65 * warm) + edge * warm * 0.28) * worldScale * inkPresence, 0.0, 0.82);
+
+        // Vermilion plate lights up wildflowers, upper tree tips, and the expanding Trumpet Ink Wave!
+        float vW = smoothstep(0.38, 0.82, warm);
+        vPlate = clamp((lum * vW * 0.88 + edge * vW * 0.52) * worldScale * inkPresence, 0.0, 0.88);
+
+        // Botanical Green plate draws tree canopies & mossy rocks when inked, or whisper-faint sage proof when uninked
+        float gW = 1.0 - smoothstep(0.38, 0.80, warm);
+        float gInked = (lum * gW * 0.72 + edge * (0.30 + 0.35 * gW)) * worldScale;
+        float gGhost = (lum * 0.22 + edge * 0.16) * worldScale;
+        gPlate = clamp(mix(gGhost, gInked, inkPresence), 0.0, 0.74);
+
+        // Cyan plate: whisper-thin registration proof lines in uninked forest + registration fringes when inked
+        float cEdge = abs(sCyan.b - sCenter.b);
+        float cInked = (cEdge * 0.95 + edge * 0.18 * gW) * worldScale;
+        float cGhost = (cEdge * 0.75 + edge * 0.36 + lum * 0.45) * worldScale;
+        cPlate = clamp(mix(cGhost, cInked, inkPresence), 0.0, 0.45);
+      } else {
+        // --- RISOGRAPH SKY DOME (OR EQUIRECTANGULAR HDRI SKY) ---
+        float skyWarm = sCenter.r * bgFadeNearElephant;
+        float skyCool = sCenter.g * bgFadeNearElephant;
+        yPlate = clamp(skyWarm * 0.78, 0.0, 0.76);
+        vPlate = clamp(smoothstep(0.28, 0.92, skyWarm) * 0.68, 0.0, 0.72);
+        gPlate = 0.0;
+        cPlate = clamp(skyCool * 0.52, 0.0, 0.44);
+      }
+
+      // Apply velvety Risograph mezzotint grain per ink drum
+      float inkY = risoTransfer(gl_FragCoord.xy, yPlate,  0.25, 1.35, uGrainMode);
+      float inkV = risoTransfer(gl_FragCoord.xy, vPlate,  0.78, 1.45, uGrainMode);
+      float inkG = risoTransfer(gl_FragCoord.xy, gPlate, -0.52, 1.40, uGrainMode);
+      float inkC = risoTransfer(gl_FragCoord.xy, cPlate,  1.10, 1.50, uGrainMode);
+
+      // Luminous Transparent Riso Ink Layering on Warm Paper:
+      // 1. Lay down Sunflower Yellow first
+      vec3 col = mix(paperCol, uYellow * (paperCol / max(uPaper, vec3(0.2))), inkY * 0.92);
+      // 2. Overprint Botanical Leaf Green -> blends with Yellow into electric Chartreuse-Lime & rich Leaf Green!
+      vec3 greenBlend = mix(uGreen, vec3(0.28, 0.66, 0.12), inkY * 0.45);
+      col = mix(col, greenBlend, inkG * 0.85);
+      // 3. Overprint Fluorescent Vermilion -> blends with Yellow into fiery Tangerine-Orange & vivid Vermilion Red!
+      vec3 vermilionBlend = mix(uVermilion, vec3(1.0, 0.36, 0.04), inkY * 0.42);
+      col = mix(col, vermilionBlend, inkV * 0.88);
+      // 4. Overprint Registration Cyan along shadow creases & misregistered silhouette edges
+      col = mix(col, mix(col * uCyan * 1.15, uCyan, 0.55), inkC * 0.62);
+
+      gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+    }
+  `,
+});
+
+const postScene = new THREE.Scene();
+postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), risoPostMat));
+const postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+function syncPaletteAndStyle() {
+  const pal = PALETTES[paletteIdx];
+  risoPostMat.uniforms.uPaper.value.copy(pal.paper);
+  risoPostMat.uniforms.uYellow.value.copy(pal.yellow);
+  risoPostMat.uniforms.uVermilion.value.copy(pal.vermilion);
+  risoPostMat.uniforms.uGreen.value.copy(pal.green);
+  risoPostMat.uniforms.uCyan.value.copy(pal.cyan);
+  risoPostMat.uniforms.uGrainMode.value = grainIdx;
+
+  document.getElementById('palettename').textContent = pal.name.toUpperCase();
+  document.getElementById('palhud').textContent = pal.short;
+  document.getElementById('grainname').textContent = GRAIN_STYLES[grainIdx];
+  document.getElementById('modename').textContent = risoEnabled ? 'riso print' : 'raw 3d';
+  document.getElementById('inkhud').textContent = storyMode ? 'story mode' : 'full ink';
+
+  model.traverse(o => {
+    if (o.isMesh) o.material = risoEnabled ? risoElephantMats.get(o) : rawElephantMats.get(o);
+  });
+  worldMeshMaterials.forEach((mats, mesh) => {
+    mesh.material = risoEnabled ? mats.riso : mats.raw;
+  });
+  skyDome.material = risoEnabled ? skyRisoMat : rawSkyMat;
+  scene.background.setHex(risoEnabled ? 0x000000 : 0xdcebf2);
+}
+
+function updateRenderSize() {
+  const pr = renderer.getPixelRatio();
+  renderer.setSize(innerWidth, innerHeight);
+  sceneRT.setSize(Math.round(innerWidth * pr), Math.round(innerHeight * pr));
+  risoPostMat.uniforms.uRes.value.set(Math.round(innerWidth * pr), Math.round(innerHeight * pr));
+  risoPostMat.uniforms.uDpr.value = pr;
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+}
+
+addEventListener('resize', updateRenderSize);
+syncPaletteAndStyle();
+updateRenderSize();
+
+// ---------------------------------------------------------------- IK helpers
+const _q = new THREE.Quaternion(), _pq = new THREE.Quaternion(), _axis = new THREE.Vector3();
+function rotateWorld(b, worldAxis, angle) {
+  b.parent.getWorldQuaternion(_pq);
+  _axis.copy(worldAxis).applyQuaternion(_pq.invert()).normalize();
+  b.quaternion.premultiply(_q.setFromAxisAngle(_axis, angle));
+  b.updateMatrixWorld(true);
+}
+function setWorldQuat(b, worldQ) {
+  b.parent.getWorldQuaternion(_pq);
+  b.quaternion.copy(_pq.invert().multiply(worldQ));
+  b.updateMatrixWorld(true);
+}
+const charAxis = (x, y, z) => new THREE.Vector3(x, y, z).applyQuaternion(character.quaternion).normalize();
+
+const _p = new THREE.Vector3(), _e = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();
+function solveIK(chain, effector, target, axis, weights, iters = 10) {
+  for (let it = 0; it < iters; it++) {
+    for (let i = 0; i < chain.length; i++) {
+      const b = chain[i];
+      const w = weights[i];
+      b.getWorldPosition(_p);
+      effector.getWorldPosition(_e);
+      _a.subVectors(_e, _p); _a.addScaledVector(axis, -_a.dot(axis));
+      _b.subVectors(target, _p); _b.addScaledVector(axis, -_b.dot(axis));
+      if (_a.lengthSq() < 1e-8 || _b.lengthSq() < 1e-8) continue;
+      const ang = Math.atan2(_c.crossVectors(_a, _b).dot(axis), _a.dot(_b)) * w;
+      rotateWorld(b, axis, THREE.MathUtils.clamp(ang, -0.35, 0.35));
+    }
+  }
+}
+
+// ---------------------------------------------------------------- input & orbit
+const keys = {};
+addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    triggerTrumpetInkWave();
+  } else if (e.code === 'KeyI') {
+    storyMode = !storyMode;
+    syncPaletteAndStyle();
+  } else if (e.code === 'KeyC') {
+    camMode = CAM_MODES[(CAM_MODES.indexOf(camMode) + 1) % 3];
+    document.getElementById('camname').textContent = camMode;
+  } else if (e.code === 'KeyR') {
+    risoEnabled = !risoEnabled;
+    syncPaletteAndStyle();
+  } else if (e.code === 'KeyP') {
+    paletteIdx = (paletteIdx + 1) % PALETTES.length;
+    syncPaletteAndStyle();
+  } else if (e.code === 'KeyG') {
+    grainIdx = (grainIdx + 1) % GRAIN_STYLES.length;
+    syncPaletteAndStyle();
+  }
+});
+addEventListener('keyup', e => { keys[e.code] = false; });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+document.getElementById('camname').textContent = camMode;
+
+let orbitYaw = 0.28, orbitPitch = 0.14, dragging = false, lx = 0, ly = 0;
+renderer.domElement.addEventListener('pointerdown', e => { dragging = true; lx = e.clientX; ly = e.clientY; window.focus(); });
+addEventListener('pointerup', () => { dragging = false; });
+addEventListener('pointermove', e => {
+  if (!dragging) return;
+  orbitYaw -= (e.clientX - lx) * 0.007;
+  orbitPitch = THREE.MathUtils.clamp(orbitPitch + (e.clientY - ly) * 0.005, -0.05, 0.85);
+  lx = e.clientX; ly = e.clientY;
+});
+addEventListener('wheel', e => {
+  if (window.parent && window.parent !== window) {
+    window.parent.scrollBy({ top: e.deltaY, left: e.deltaX, behavior: 'auto' });
+  }
+}, { passive: true });
+
+// ---------------------------------------------------------------- gait
+const smooth = t => t * t * (3 - 2 * t);
+function footStep(leg, phase, amp) {
+  const p = ((phase + leg.offset) % 1 + 1) % 1;
+  const sweep = (leg.fore ? G.sweepFore : G.sweepHind) * amp;
+  if (p < G.duty) {
+    const s = p / G.duty;
+    return { z: sweep * 0.5 - sweep * s, y: 0, swing: 0, stance: s };
+  }
+  const s = (p - G.duty) / (1 - G.duty);
+  const lift = (leg.fore ? G.liftFore : G.liftHind) * amp;
+  const swingBell = Math.sin(Math.PI * s);
+  return {
+    z: -sweep * 0.5 + sweep * smooth(s),
+    y: lift * Math.sin(Math.PI * Math.pow(s, 0.85)),
+    swing: swingBell,
+    stance: -1,
+  };
+}
+
+// ---------------------------------------------------------------- loop
+let speed = 0, heading = 0, phase = 0, amp = 0, time = 0, turnSmooth = 0;
+const clock = new THREE.Clock();
+const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), tmp = new THREE.Vector3();
+const statsEl = document.getElementById('stats');
+const wayfinderEl = document.getElementById('wayfinder');
+const promptEl = document.getElementById('prompt-banner');
+const target = new THREE.Vector3(), toeTarget = new THREE.Vector3(), tiltQ = new THREE.Quaternion(), toeQ = new THREE.Quaternion();
+
+if (params.get('pulse') === '1') {
+  triggerTrumpetInkWave();
+  sharedUniforms.uPulseWave.value.w = 7.4;
+  awakenSanctuary(sanctuaries[0]);
+  sanctuaries[0].inkRadius = 11.5;
+  sharedUniforms.uSanctuaries.value[0].w = 11.5;
+}
+
+function cameraOffset() {
+  if (camMode === 'side') return new THREE.Vector3(7.5, 2.05, 0.8);
+  if (camMode === 'front') return new THREE.Vector3(2.8, 2.15, 7.5);
+  const dist = 8.4;
+  return new THREE.Vector3(
+    Math.sin(orbitYaw) * Math.cos(orbitPitch) * dist,
+    Math.sin(orbitPitch) * dist + 1.9,
+    -Math.cos(orbitYaw) * Math.cos(orbitPitch) * dist
+  );
+}
+camPos.copy(character.position).add(cameraOffset());
+camLook.copy(character.position).add(new THREE.Vector3(0, 1.35, 0));
+
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  time += dt;
+  sharedUniforms.uTime.value = time;
+  risoPostMat.uniforms.uTime.value = time;
+
+  if (FREEZE_P !== null) {
+    phase = FREEZE_P; amp = 1;
+  } else {
+    const fwd = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
+    const turn = (keys.KeyA || keys.ArrowLeft ? 1 : 0) - (keys.KeyD || keys.ArrowRight ? 1 : 0);
+    const hurry = (keys.ShiftLeft || keys.ShiftRight) && fwd > 0 ? G.hurry : 1;
+    const targetSpeed = fwd * G.walkSpeed * hurry * (fwd < 0 ? 0.6 : 1);
+    speed += (targetSpeed - speed) * (1 - Math.exp(-dt * 2.5));
+    if (Math.abs(speed) < 1e-3 && !fwd) speed = 0;
+
+    turnSmooth += (turn - turnSmooth) * (1 - Math.exp(-dt * 5));
+    heading += turnSmooth * G.turnRate * dt * (speed < -0.05 ? -1 : 1);
+    character.rotation.y = heading;
+
+    let nx = character.position.x + Math.sin(heading) * speed * dt;
+    let nz = character.position.z + Math.cos(heading) * speed * dt;
+    const elRadius = 1.1;
+    for (const ob of obstacles) {
+      const dx = nx - ob.x, dz = nz - ob.z;
+      const minD = ob.r + elRadius;
+      const dSq = dx * dx + dz * dz;
+      if (dSq < minD * minD && dSq > 1e-6) {
+        const d = Math.sqrt(dSq);
+        nx = ob.x + (dx / d) * minD;
+        nz = ob.z + (dz / d) * minD;
+      }
+    }
+    character.position.x = nx;
+    character.position.z = nz;
+
+    const moveAmp = Math.min(1.25, Math.abs(speed) / G.walkSpeed);
+    const turnAmp = Math.abs(turn) && moveAmp < 0.35 ? 0.38 : 0;
+    const targetAmp = Math.max(moveAmp, turnAmp);
+    amp += (targetAmp - amp) * (1 - Math.exp(-dt * 6));
+
+    if (amp > 0.01) {
+      const stride = (G.sweepFore * amp) / G.duty;
+      const groundSpeed = Math.max(Math.abs(speed), turnAmp ? 0.28 : 0);
+      phase += (speed < -0.01 ? -1 : 1) * (groundSpeed / stride) * dt;
+    }
+  }
+
+  const groundY = sampleWorldY(character.position.x, character.position.z, character.position.y);
+  character.position.y += (groundY - character.position.y) * (FREEZE_P !== null ? 1 : 1 - Math.exp(-dt * 12));
+  sharedUniforms.uElephantPos.value.copy(character.position);
+
+  // Drop persistent footpath ink trail stamps every 2.0m walked
+  const elX = character.position.x, elZ = character.position.z;
+  if (Math.hypot(elX - lastTrailX, elZ - lastTrailZ) > 2.0) {
+    sharedUniforms.uTrail.value[nextTrailIdx].set(elX, character.position.y, elZ, 5.2);
+    nextTrailIdx = (nextTrailIdx + 1) % TRAIL_MAX;
+    lastTrailX = elX;
+    lastTrailZ = elZ;
+  }
+
+  // Update expanding Trumpet Ink Shockwave ([SPACE]) & Sanctuary Astrolabes
+  if (pulseWaveActive) {
+    const pw = sharedUniforms.uPulseWave.value;
+    pw.w += dt * 15.0;
+    for (const s of sanctuaries) {
+      if (!s.awakened) {
+        const ds = Math.hypot(s.x - pw.x, s.z - pw.z);
+        if (ds < 22.0 && pw.w >= ds) {
+          awakenSanctuary(s);
+        }
+      }
+    }
+    if (pw.w > 34.0) {
+      pulseWaveActive = false;
+      pw.w = -10.0;
+    }
+  }
+
+  let awakenedCount = 0;
+  let nearestUninked = null;
+  let nearestDist = Infinity;
+
+  for (const s of sanctuaries) {
+    if (s.awakened) {
+      awakenedCount++;
+      s.inkRadius += (s.targetRadius - s.inkRadius) * (1 - Math.exp(-dt * 2.4));
+      sharedUniforms.uSanctuaries.value[s.idx].w = s.inkRadius;
+    } else {
+      const d = Math.hypot(s.x - elX, s.z - elZ);
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearestUninked = s;
+      }
+    }
+
+    const spin = s.awakened ? 2.2 : 0.75;
+    s.outerRing.rotation.y = time * 0.8 * spin + s.idx;
+    s.outerRing.rotation.x = Math.sin(time * 0.6 + s.idx) * 0.35;
+    s.innerRing.rotation.x = -time * 1.1 * spin;
+    s.innerRing.rotation.z = time * 0.7 * spin;
+    s.seed.rotation.y = -time * 1.6 * spin;
+    s.astrolabe.position.y = (s.awakened ? 2.15 : 1.72) + Math.sin(time * 2.2 + s.idx) * 0.14;
+    const pulseScale = s.awakened
+      ? 1.15 + Math.sin(time * 3.2 + s.idx) * 0.08
+      : 0.92 + Math.sin(time * 2.0 + s.idx) * 0.06;
+    s.cropRing.scale.setScalar(pulseScale);
+  }
+
+  // Smoothly update global & sky ink levels based on awakened Sanctuary Plates
+  const allAwakened = awakenedCount === sanctuaries.length;
+  const targetGlobalInk = (!storyMode || allAwakened) ? 1.0 : 0.0;
+  sharedUniforms.uGlobalInk.value += (targetGlobalInk - sharedUniforms.uGlobalInk.value) * (1 - Math.exp(-dt * 2.0));
+
+  const targetSkyInk = !storyMode ? 1.0 : (0.15 + 0.85 * (awakenedCount / sanctuaries.length));
+  sharedUniforms.uSkyInk.value += (targetSkyInk - sharedUniforms.uSkyInk.value) * (1 - Math.exp(-dt * 2.0));
+
+  if (nearestUninked) {
+    const toAngle = Math.atan2(nearestUninked.x - elX, nearestUninked.z - elZ) - heading;
+    const normAng = Math.atan2(Math.sin(toAngle), Math.cos(toAngle));
+    const dirArrow = Math.abs(normAng) < 0.45 ? '↑ AHEAD' : (normAng > 0 ? '↖ LEFT' : '↗ RIGHT');
+    wayfinderEl.textContent = `NEXT: ${nearestUninked.short} · ${nearestDist.toFixed(0)}M ${dirArrow}`;
+    promptEl.classList.toggle('visible', nearestDist < 8.5);
+  } else {
+    wayfinderEl.textContent = 'ALL 5 PLATES IN REGISTRATION · WORLD RESTORED';
+    promptEl.classList.remove('visible');
+  }
+
+  restQ.forEach((q, b) => b.quaternion.copy(q));
+
+  // Trumpet Pose Envelope when [SPACE] is pressed
+  if (trumpetTimer > 0) trumpetTimer = Math.max(0, trumpetTimer - dt);
+  const trumpetEnv = Math.sin( THREE.MathUtils.clamp(trumpetTimer / 1.35, 0, 1) * Math.PI );
+
+  const P = phase * Math.PI * 2;
+  const idleBreath = Math.sin(time * 1.35) * 0.014;
+  const idleSway = Math.sin(time * 0.72) * 0.016 * (1 - Math.min(1, amp));
+  const walkCrouch = 0.045 * ELEPHANT_SCALE * Math.min(1, amp);
+  bodyRig.position.y = HIP_PIVOT - walkCrouch - G.bob * amp * Math.cos(2 * P) + idleBreath + trumpetEnv * 0.06;
+  bodyRig.rotation.z = Math.sin(P) * G.roll * amp - turnSmooth * 0.03 + idleSway;
+  bodyRig.rotation.x = Math.sin(2 * P + 0.5) * G.pitch * amp + Math.cos(time * 0.9) * 0.006 - trumpetEnv * 0.08;
+  character.updateMatrixWorld(true);
+
+  const lateral = charAxis(1, 0, 0);
+  for (const leg of legs) {
+    const o = footStep(leg, phase, amp);
+
+    if (leg.fore) {
+      const trailingLift = o.stance > 0.65 ? smooth((o.stance - 0.65) / 0.35) * 0.22 : 0;
+      rotateWorld(leg.upper, lateral, -0.22 * o.swing * amp);
+      rotateWorld(leg.lower, lateral, (0.06 + 0.45 * o.swing + trailingLift) * amp);
+      rotateWorld(leg.foot, lateral, (0.28 * o.swing - 0.12 * trailingLift) * amp);
+    } else {
+      const trailingLift = o.stance > 0.65 ? smooth((o.stance - 0.65) / 0.35) * 0.18 : 0;
+      rotateWorld(leg.upper, lateral, -0.25 * o.swing * amp);
+      rotateWorld(leg.lower, lateral, (0.08 + 0.50 * o.swing + trailingLift) * amp);
+      rotateWorld(leg.foot, lateral, -0.20 * o.swing * amp);
+    }
+
+    target.set(leg.homeHoof.x, leg.homeHoof.y + o.y, leg.homeHoof.z + o.z);
+    character.localToWorld(target);
+    const footGroundY = sampleWorldY(target.x, target.z, character.position.y);
+    target.y = footGroundY + leg.homeHoof.y + o.y;
+
+    const isSwinging = o.swing > 0.08 && amp > 0.15;
+    if (leg.wasSwinging && !isSwinging) {
+      spawnFootstepBloom(target.x, footGroundY, target.z);
+    }
+    leg.wasSwinging = isSwinging;
+
+    const peel = o.stance > 0.7 ? smooth((o.stance - 0.7) / 0.3) * 0.35 : 0;
+    const tiltAngle = (leg.fore ? G.tiltFore : G.tiltHind) * Math.max(o.swing, peel) * amp;
+    tiltQ.setFromAxisAngle(lateral, tiltAngle);
+    const toeVec = leg.hoofToToe.clone().applyQuaternion(character.quaternion).applyQuaternion(tiltQ);
+    toeTarget.copy(target).add(toeVec);
+
+    solveIK([leg.foot, leg.lower, leg.upper], leg.toe, toeTarget, lateral, [0.2, 0.85, 1.0], 12);
+
+    toeQ.copy(tiltQ).multiply(character.quaternion).multiply(leg.toeRestWorldQ);
+    setWorldQuat(leg.toe, toeQ);
+  }
+
+  const up = charAxis(0, 1, 0), fwdAxis = charAxis(0, 0, 1);
+  const idleLookYaw = Math.sin(time * 0.55) * 0.08 * (1 - Math.min(1, amp * 0.7));
+  const nod = Math.sin(2 * P - 0.7) * 0.028 * amp + Math.sin(time * 1.15) * 0.014 - trumpetEnv * 0.26;
+  neck.forEach(b => {
+    rotateWorld(b, lateral, nod * 0.35);
+    rotateWorld(b, up, turnSmooth * 0.04 + idleLookYaw * 0.35);
+  });
+  if (headBone) {
+    rotateWorld(headBone, lateral, nod * 0.65);
+    rotateWorld(headBone, up, turnSmooth * 0.08 + idleLookYaw * 0.75);
+  }
+
+  trunk.forEach((b, i) => {
+    const k = (i + 1) / trunk.length;
+    const sway = Math.sin(P - i * 0.32) * 0.048 * amp
+               + Math.sin(time * 0.95 - i * 0.28) * 0.028
+               + turnSmooth * 0.025 * k;
+    const swing = Math.sin(2 * P - i * 0.28) * 0.026 * amp
+                + Math.cos(time * 0.80 - i * 0.22) * 0.022
+                - trumpetEnv * (0.16 + k * 0.22);
+    rotateWorld(b, fwdAxis, sway * (0.35 + k * 0.85));
+    rotateWorld(b, lateral, swing * (0.4 + k * 0.8));
+  });
+
+  const tailDroop = [-0.65, -0.35, -0.18, -0.10, -0.05];
+  tail.forEach((b, i) => {
+    rotateWorld(b, lateral, tailDroop[i] + Math.sin(2 * P - i * 0.4) * 0.04 * amp);
+    rotateWorld(b, fwdAxis, Math.sin(P - i * 0.45 + time * 1.4) * 0.13 * (0.35 + amp * 0.85));
+  });
+
+  const flap = (0.09 + Math.sin(time * (1.6 + amp * 1.2) + Math.sin(P) * 0.5) * 0.13) * (0.6 + 0.5 * amp) + trumpetEnv * 0.32;
+  if (earL) rotateWorld(earL, up, flap);
+  if (earR) rotateWorld(earR, up, -flap);
+
+  // Update subtle footstep micro-dust particles
+  let dustDirty = false;
+  for (let i = 0; i < DUST_COUNT; i++) {
+    const dm = dustMotes[i];
+    if (dm.age >= dm.maxAge) {
+      if (dustAlphas[i] > 0) {
+        dustAlphas[i] = 0;
+        dustPositions[i * 3 + 1] = -999;
+        dustDirty = true;
+      }
+      continue;
+    }
+    dm.age += dt;
+    dm.x += dm.vx * dt;
+    dm.y += dm.vy * dt;
+    dm.z += dm.vz * dt;
+    dm.vy = Math.max(0.06, dm.vy - dt * 0.42);
+    const t = dm.age / dm.maxAge;
+    dustPositions[i * 3] = dm.x;
+    dustPositions[i * 3 + 1] = dm.y;
+    dustPositions[i * 3 + 2] = dm.z;
+    dustAlphas[i] = Math.sin(t * Math.PI) * (1.0 - t * 0.4);
+    dustDirty = true;
+  }
+  if (dustDirty) {
+    dustGeo.attributes.position.needsUpdate = true;
+    dustGeo.attributes.aAlpha.needsUpdate = true;
+  }
+
+  const off = cameraOffset();
+  if (camMode === 'follow') off.applyAxisAngle(new THREE.Vector3(0, 1, 0), heading);
+  tmp.copy(character.position).add(off);
+  const snap = FREEZE_P !== null;
+  camPos.lerp(tmp, snap ? 1 : 1 - Math.exp(-dt * 4));
+  camera.position.copy(camPos);
+  camLook.lerp(tmp.copy(character.position).add(new THREE.Vector3(0, 1.35, 0)), snap ? 1 : 1 - Math.exp(-dt * 6));
+  camera.lookAt(camLook);
+
+  // Position Riso separation lights relative to the camera view so the elephant is ALWAYS sculpturally lit
+  // with creamy paper highlights, glowing chartreuse/green body, and fiery vermilion-orange upper contours!
+  const camToEl = new THREE.Vector3().subVectors(character.position, camera.position);
+  camToEl.y = 0;
+  if (camToEl.lengthSq() < 1e-4) camToEl.set(0, 0, 1);
+  camToEl.normalize();
+  const camRight = new THREE.Vector3(-camToEl.z, 0, camToEl.x);
+
+  // Key light (Red channel): 40 deg front-right of camera, elevated -> sculpts the body & legs facing the viewer
+  keyLight.position.copy(character.position)
+    .addScaledVector(camToEl, -7.5)
+    .addScaledVector(camRight, 6.5)
+    .add(new THREE.Vector3(0, 8.5, 0));
+  keyLight.target.position.copy(character.position).add(new THREE.Vector3(0, 1.2, 0));
+
+  // Warm Vermilion Rim/Crown light (Green channel): overhead + slightly front-left -> blazes on ears, crown, back, trunk & tusks!
+  warmRimLight.position.copy(character.position)
+    .addScaledVector(camToEl, -3.2)
+    .addScaledVector(camRight, -6.5)
+    .add(new THREE.Vector3(0, 12.0, 0));
+  warmRimLight.target.position.copy(character.position).add(new THREE.Vector3(0, 1.4, 0));
+
+  // Soft Fill light from opposite side
+  bounceLight.position.copy(character.position)
+    .addScaledVector(camToEl, 5.0)
+    .addScaledVector(camRight, -4.0)
+    .add(new THREE.Vector3(0, 3.0, 0));
+  bounceLight.target.position.copy(character.position);
+
+  statsEl.innerHTML = `speed ${speed.toFixed(2)} m/s<br>step ${(amp * 100).toFixed(0)}%<br>pos ${character.position.x.toFixed(1)}, ${character.position.z.toFixed(1)}`;
+
+  if (risoEnabled) {
+    renderer.setRenderTarget(sceneRT);
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(null);
+    renderer.render(postScene, postCam);
+  } else {
+    renderer.setRenderTarget(null);
+    renderer.render(scene, camera);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

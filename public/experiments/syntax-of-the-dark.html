@@ -1,0 +1,1108 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Syntax of the Dark</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fragment+Mono&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300&display=swap">
+<style>
+/* Layout: one full-bleed recorded feed; instrument text pinned to the four corners; plain document pages cut in over it. */
+:root{
+  --void:#0A0B0C;
+  --dead:#3A3A3C;
+  --bone:#CFCAC0;
+  --pulse:#F2EDE3;
+  --inst:#636AF0;
+  --inst-dim:rgba(99,106,240,.62);
+  --inst-faint:rgba(99,106,240,.3);
+  --bone-dim:rgba(207,202,192,.58);
+  --bone-faint:rgba(207,202,192,.16);
+  --mono:"Fragment Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --serif:"Newsreader", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --et:calc(18px + env(safe-area-inset-top, 0px));
+  --eb:calc(18px + env(safe-area-inset-bottom, 0px));
+  --el:max(18px, calc(env(safe-area-inset-left, 0px) + 18px));
+  --er:max(18px, calc(env(safe-area-inset-right, 0px) + 18px));
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{
+  margin:0;background:var(--void);color:var(--bone);overflow:hidden;
+  font-family:var(--mono);font-size:11px;-webkit-font-smoothing:antialiased;
+  padding-left:max(16px, env(safe-area-inset-left,0px));
+  padding-right:max(16px, env(safe-area-inset-right,0px));
+  padding-block:0;
+}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair;background:var(--void)}
+a{color:inherit}
+:focus-visible{outline:1px solid var(--bone);outline-offset:3px}
+
+/* ---------- instrument layer ---------- */
+.hud{position:fixed;pointer-events:none;font-family:var(--mono);font-size:10.5px;line-height:1.6;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--inst);font-variant-numeric:tabular-nums;z-index:5}
+.hud .k{color:var(--inst-dim);display:inline-block;min-width:7.5ch}
+#status{top:var(--et);left:var(--el)}
+#tele{bottom:var(--eb);left:var(--el)}
+#sig{bottom:var(--eb);left:50%;transform:translateX(-50%);text-align:center;display:grid;gap:8px;justify-items:center}
+#prompt{color:var(--inst);transition:opacity .8s;white-space:nowrap}
+.meter{display:flex;align-items:center;gap:12px}
+.bar{position:relative;width:168px;height:7px;
+  background:repeating-linear-gradient(90deg,var(--inst-faint) 0 1px,transparent 1px 7px)}
+.bar i{position:absolute;left:0;bottom:0;height:1px;background:var(--inst);width:0}
+.bar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--inst-faint)}
+#nav{position:fixed;top:var(--et);right:var(--er);z-index:12;display:flex;gap:22px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase}
+#nav a{color:var(--bone-dim);text-decoration:none;padding:4px 0;transition:color .2s}
+#nav a:hover{color:var(--bone)}
+#overlay{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
+#overlay .ln{stroke:var(--inst);stroke-width:1;fill:none;vector-effect:non-scaling-stroke}
+#overlay .faint{stroke:var(--inst-dim)}
+#brk{opacity:0;transition:opacity .25s}
+#overlay.locked #brk{opacity:1}
+#hullp{transition:opacity .3s}
+#readout{position:fixed;left:0;top:0;z-index:6;pointer-events:none;
+  font-family:var(--mono);font-size:10.5px;line-height:1.62;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--inst);background:rgba(10,11,12,.74);padding:8px 11px 9px;max-width:40ch;
+  font-variant-numeric:tabular-nums;opacity:0;transition:opacity .25s}
+#readout.on{opacity:1}
+#readout .row{display:grid;grid-template-columns:13ch minmax(0,1fr);column-gap:1.4ch;min-height:1.62em}
+#readout .row .k{color:var(--inst-dim)}
+#readout .row.gap{min-height:.8em}
+#chip{position:fixed;left:0;top:0;z-index:6;pointer-events:none;font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.06em;background:var(--inst);color:var(--void);padding:1px 4px;opacity:0;transition:opacity .25s}
+#chip.on{opacity:1}
+.mk{position:fixed;left:0;top:0;width:9px;height:9px;margin:-4px 0 0 -4px;pointer-events:none;z-index:4;opacity:0}
+.mk::before,.mk::after{content:"";position:absolute;background:var(--inst)}
+.mk::before{left:4px;top:0;width:1px;height:9px}
+.mk::after{top:4px;left:0;height:1px;width:9px}
+
+/* ---------- cold open ---------- */
+#cold{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:var(--void);
+  transition:opacity 1.6s ease;pointer-events:none}
+#cold.gone{opacity:0}
+.card{position:absolute;width:min(25ch,84vw);font-family:var(--serif);font-weight:300;
+  font-size:clamp(21px,3vw,33px);line-height:1.34;text-align:center;text-wrap:balance;color:var(--bone);
+  opacity:0;transition:opacity 1.2s ease;font-optical-sizing:auto}
+.card.on{opacity:1}
+.card .l2{display:block;margin-top:.55em;opacity:0;transition:opacity 1.2s ease}
+.card .l2.on{opacity:1}
+#skip{position:fixed;z-index:21;right:var(--er);bottom:var(--eb);background:none;border:0;cursor:pointer;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--bone-dim);padding:6px 0}
+#skip:hover{color:var(--bone)}
+
+#cut{position:fixed;inset:0;z-index:40;background:#000;opacity:0;pointer-events:none;transition:opacity .26s linear}
+#cut.on{opacity:1}
+#lost{position:fixed;inset:0;z-index:8;display:grid;place-items:center;pointer-events:none;
+  font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--inst);opacity:0;transition:opacity .4s}
+#lost.on{opacity:1}
+
+/* ---------- plain pages ---------- */
+.page{position:fixed;inset:0;z-index:30;overflow-y:auto;background:var(--void);color:var(--bone);
+  padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px))}
+.page .bar-top{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;
+  max-width:680px;margin:0 auto;padding-block:calc(18px + env(safe-area-inset-top,0px)) 18px;background:var(--void);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase}
+.page .bar-top a{color:var(--bone-dim);text-decoration:none}
+.page .bar-top a:hover{color:var(--bone)}
+.page .bar-top nav{display:flex;gap:22px}
+.page .bar-top a[aria-current]{color:var(--bone)}
+.wrap{max-width:680px;margin:0 auto;padding-block:48px 112px}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--bone-dim);margin:0 0 18px}
+.page h1{font-family:var(--serif);font-weight:300;font-size:clamp(38px,6vw,56px);line-height:1.05;margin:0 0 28px;text-wrap:balance;letter-spacing:-.01em}
+.page h2{font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--bone-dim);margin:52px 0 16px}
+.page p{font-family:var(--serif);font-size:19px;line-height:1.56;max-width:62ch;margin:0 0 18px;color:var(--bone)}
+.page p.small{font-size:16px;color:var(--bone-dim)}
+.list{border-top:1px solid var(--bone-faint);margin:0;padding:0;list-style:none}
+.list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:baseline;padding:18px 0;border-bottom:1px solid var(--bone-faint)}
+.list .t{font-family:var(--serif);font-size:24px;font-weight:300}
+.list .m{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim)}
+.keys{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 22px;margin:0;font-family:var(--serif);font-size:17px;line-height:1.45}
+.keys dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim);padding-top:4px}
+.keys dd{margin:0}
+.btns{display:flex;flex-wrap:wrap;gap:12px 26px;margin-top:22px}
+.tbtn{background:none;border:0;padding:4px 0;cursor:pointer;color:var(--bone);font-family:var(--mono);font-size:10.5px;
+  letter-spacing:.14em;text-transform:uppercase;border-bottom:1px solid var(--bone-dim)}
+.tbtn:hover{border-bottom-color:var(--bone)}
+
+/* ---------- tuning ---------- */
+#tune{position:fixed;z-index:25;left:var(--el);top:50%;transform:translateY(-50%);width:248px;
+  background:rgba(10,11,12,.92);border:1px solid var(--inst-faint);padding:12px 14px 14px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--inst)}
+#tune h3{margin:0 0 10px;font-weight:400;font-size:10px;letter-spacing:.16em;display:flex;justify-content:space-between}
+#tune label{display:grid;grid-template-columns:1fr auto;gap:2px 8px;margin-bottom:10px;color:var(--inst-dim)}
+#tune label output{color:var(--inst)}
+#tune input[type=range]{grid-column:1/-1;width:100%;accent-color:#636AF0;margin:2px 0 0}
+#tune .row2{display:flex;gap:14px;margin-top:6px;flex-wrap:wrap}
+#tune button{background:none;border:1px solid var(--inst-faint);color:var(--inst);font:inherit;letter-spacing:.12em;padding:5px 7px;cursor:pointer}
+#tune button:hover{border-color:var(--inst)}
+#tune textarea{width:100%;box-sizing:border-box;margin-top:8px;background:transparent;color:var(--inst);border:1px solid var(--inst-faint);font:inherit;font-size:9.5px;text-transform:none;resize:none;height:54px}
+
+#nogl{position:fixed;inset:0;z-index:19;display:grid;place-items:center;padding:24px;text-align:center;
+  font-family:var(--serif);font-size:20px;color:var(--bone)}
+
+@media (max-width:640px){
+  #sig{bottom:calc(var(--eb) + 62px)}
+  .bar{width:132px}
+  .hud{font-size:10px}
+  #readout{max-width:min(36ch, calc(100vw - 32px));font-size:10px}
+  #readout .row{grid-template-columns:11ch minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  .card,.card .l2,#cold,#readout,#chip,#prompt{transition-duration:.01s}
+}
+</style>
+
+<canvas id="gl" aria-label="Recorded feed of a subterranean fungal network"></canvas>
+
+<svg id="overlay" aria-hidden="true">
+  <polygon id="hullp" class="ln" points=""></polygon>
+  <g id="ret">
+    <line class="ln" x1="-17" y1="0" x2="-6" y2="0"></line>
+    <line class="ln" x1="6" y1="0" x2="17" y2="0"></line>
+    <line class="ln" x1="0" y1="-17" x2="0" y2="-6"></line>
+    <line class="ln" x1="0" y1="6" x2="0" y2="17"></line>
+    <g id="brk">
+      <polyline class="ln faint" points="-26,-18 -26,-26 -18,-26"></polyline>
+      <polyline class="ln faint" points="18,-26 26,-26 26,-18"></polyline>
+      <polyline class="ln faint" points="26,18 26,26 18,26"></polyline>
+      <polyline class="ln faint" points="-18,26 -26,26 -26,18"></polyline>
+    </g>
+  </g>
+</svg>
+<div id="markers" aria-hidden="true"></div>
+<div id="chip" aria-hidden="true"></div>
+<div id="readout" aria-live="polite"></div>
+
+<div class="hud" id="status"><div>ST.12 &middot; DEEP TAP</div><div><span class="k">FEED</span><span id="feedv">live &middot; unacknowledged</span></div></div>
+<div class="hud" id="tele">
+  <div><span class="k">DEPTH</span><span id="tDepth">&minus;12,400 m</span></div>
+  <div><span class="k">HDG</span><span id="tHdg">000.0&deg;</span></div>
+  <div><span class="k">T+</span><span id="tTime">00:00:00</span></div>
+</div>
+<div class="hud" id="sig">
+  <div id="prompt"></div>
+  <div class="meter"><div class="bar"><i id="sigbar"></i></div><span id="sigv">SIG &minus;92 dB</span></div>
+</div>
+<nav id="nav" aria-label="Site"><a href="#work">Work</a><a href="#info">Info</a></nav>
+
+<div id="cold" aria-live="polite">
+  <p class="card" id="c1">In 2022, micro-electrodes were placed into fungal mats.<span class="l2">The electrical spikes were not random.</span></p>
+  <p class="card" id="c2">This terminal is connected to one such network.<span class="l2">It was not given permission.</span></p>
+  <p class="card" id="c3">Nothing here is addressed to you.</p>
+</div>
+<button id="skip" type="button">Skip &nbsp;Esc</button>
+<div id="lost"><span id="lostv">Signal lost</span></div>
+<div id="cut"></div>
+<div id="nogl" hidden><p>This feed needs WebGL, which this browser has switched off. <a href="#work">Work</a> and <a href="#info">Info</a> still open normally.</p></div>
+
+<section class="page" id="page-work" hidden aria-labelledby="h-work">
+  <div class="bar-top"><a href="#feed">&larr; Feed</a><nav aria-label="Site"><a href="#work" aria-current="page">Work</a><a href="#info">Info</a></nav></div>
+  <div class="wrap">
+    <p class="eyebrow">Chirag Rajdeo &middot; Creative technologist</p>
+    <h1 id="h-work" tabindex="-1">Work</h1>
+    <p>This index will stay plain on purpose: static pages, no WebGL, quick to read. Case studies are in progress.</p>
+    <ul class="list">
+      <li><span class="t">Annam</span><span class="m">Case study &middot; in progress</span></li>
+      <li><span class="t">More to follow</span><span class="m">&mdash;</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="page" id="page-info" hidden aria-labelledby="h-info">
+  <div class="bar-top"><a href="#feed">&larr; Feed</a><nav aria-label="Site"><a href="#work">Work</a><a href="#info" aria-current="page">Info</a></nav></div>
+  <div class="wrap">
+    <p class="eyebrow">About the landing page</p>
+    <h1 id="h-info" tabindex="-1">Syntax of the Dark</h1>
+    <p>This page is a piece of interactive fiction built on a real finding. In 2022 the computer scientist Andrew Adamatzky recorded electrical spiking in four species of fungi and reported that the spikes cluster into recurring patterns. Whether those patterns amount to anything like language is disputed.</p>
+    <p>Here a probe drifts through an imagined fungal network twelve kilometres down. You can look around but you cannot steer. Marked junctions carry readings. Something else lives down here and feeds on the network. None of it is aware of you.</p>
+    <h2>Controls</h2>
+    <dl class="keys">
+      <dt>Look</dt><dd>Move the pointer, or drag on a touch screen.</dd>
+      <dt>Read</dt><dd>Hold the reticle on a marked junction.</dd>
+      <dt>Esc</dt><dd>Skips the opening.</dd>
+    </dl>
+    <h2>Prototype v1, for review</h2>
+    <dl class="keys">
+      <dt>T</dt><dd>Opens tuning: drift speed, fog density, dither scale, grain and exposure.</dd>
+      <dt>C</dt><dd>Forces the convergence event instead of waiting for it.</dd>
+    </dl>
+    <div class="btns">
+      <button class="tbtn" type="button" id="bReplay">Replay opening</button>
+      <button class="tbtn" type="button" id="bTune">Open tuning</button>
+    </div>
+    <p class="small" style="margin-top:44px">Built by Chirag Rajdeo with Three.js and hand-written shaders. Sound, mobile tuning and the work pages come in later phases.</p>
+  </div>
+</section>
+
+<div id="tune" hidden role="dialog" aria-label="Tuning">
+  <h3><span>Tuning</span><span>T to close</span></h3>
+  <label for="tSpeed">Drift speed <output id="oSpeed"></output><input id="tSpeed" type="range" min="0" max="9" step="0.1"></label>
+  <label for="tFog">Fog density <output id="oFog"></output><input id="tFog" type="range" min="0.003" max="0.026" step="0.0005"></label>
+  <label for="tDither">Dither scale <output id="oDither"></output><input id="tDither" type="range" min="1" max="5" step="1"></label>
+  <label for="tGrain">Grain <output id="oGrain"></output><input id="tGrain" type="range" min="0" max="0.3" step="0.005"></label>
+  <label for="tExp">Exposure <output id="oExp"></output><input id="tExp" type="range" min="0.4" max="2.6" step="0.05"></label>
+  <div class="row2"><button type="button" id="bConv">Force convergence</button><button type="button" id="bCopy">Copy values</button></div>
+  <textarea id="tVals" readonly aria-label="Current values"></textarea>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const coarse=matchMedia('(pointer: coarse)').matches;
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+/* ================= tunables ================= */
+const P={speed:3.0,fog:0.009,dither:2,grain:0.07,exposure:1.4};
+
+/* ================= pages + routing (work even without WebGL) ================= */
+let pageOpen=null;
+function setCut(on){$('#cut').classList.toggle('on',on)}
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.hidden=(p.id!=='page-'+name));
+  pageOpen=name;
+  const pg=$('#page-'+name); pg.scrollTop=0;
+  const h=pg.querySelector('h1'); if(h) h.focus({preventScroll:true});
+}
+function route(){
+  const h=location.hash.slice(1);
+  const want=(h==='work'||h==='info')?h:null;
+  if(want===pageOpen) return;
+  if(coldRunning) endCold(false);
+  setCut(true);
+  setTimeout(()=>{
+    if(want) showPage(want); else { document.querySelectorAll('.page').forEach(p=>p.hidden=true); pageOpen=null; }
+    setTimeout(()=>setCut(false),180);
+  },300);
+}
+window.addEventListener('hashchange',route);
+
+/* ================= cold open ================= */
+let coldRunning=false, coldTimers=[], driftStarted=false, onDrift=null;
+function at(ms,fn){coldTimers.push(setTimeout(fn,ms))}
+function startCold(){
+  coldRunning=true; $('#cold').classList.remove('gone'); $('#cold').hidden=false; $('#skip').hidden=false;
+  document.querySelectorAll('.card,.card .l2').forEach(e=>e.classList.remove('on'));
+  const c1=$('#c1'),c2=$('#c2'),c3=$('#c3');
+  at(900,()=>c1.classList.add('on'));
+  at(2700,()=>c1.querySelector('.l2').classList.add('on'));
+  at(6300,()=>c1.classList.remove('on'));
+  at(7500,()=>c2.classList.add('on'));
+  at(9300,()=>c2.querySelector('.l2').classList.add('on'));
+  at(12400,()=>c2.classList.remove('on'));
+  at(13600,()=>c3.classList.add('on'));
+  at(16600,()=>c3.classList.remove('on'));
+  at(17400,()=>endCold(true));
+}
+function endCold(remember){
+  coldTimers.forEach(clearTimeout); coldTimers=[];
+  if(remember!==false) store.set('sotd-seen','1');
+  coldRunning=false;
+  $('#cold').classList.add('gone'); $('#skip').hidden=true;
+  setTimeout(()=>{ if(!coldRunning) $('#cold').hidden=true; },1700);
+  if(!driftStarted){ driftStarted=true; if(onDrift) onDrift(); }
+}
+$('#skip').addEventListener('click',()=>endCold(true));
+
+/* ================= WebGL bootstrap ================= */
+const canvas=$('#gl');
+let renderer=null;
+try{
+  if(!window.THREE) throw new Error('three missing');
+  renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
+}catch(e){ renderer=null; }
+
+if(!renderer){
+  $('#nogl').hidden=false;
+  ['#overlay','#status','#tele','#sig','#cold','#skip'].forEach(s=>{const el=$(s); if(el) el.hidden=true;});
+  route();
+  return;
+}
+
+/* ================= seeded randomness ================= */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+const R=mulberry32(1212);
+
+/* ================= vector helpers ================= */
+function cross3(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]}
+function dot3(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]}
+function norm3(v){const l=Math.hypot(v[0],v[1],v[2])||1;return[v[0]/l,v[1]/l,v[2]/l]}
+function rot3(v,k,a){const c=Math.cos(a),s=Math.sin(a),kv=cross3(k,v),d=dot3(k,v)*(1-c);return[v[0]*c+kv[0]*s+k[0]*d,v[1]*c+kv[1]*s+k[1]*d,v[2]*c+kv[2]*s+k[2]*d]}
+function randUnit(r){let x,y,z,l;do{x=r()*2-1;y=r()*2-1;z=r()*2-1;l=x*x+y*y+z*z}while(l>1||l<1e-4);l=Math.sqrt(l);return[x/l,y/l,z/l]}
+function shuffle(a,r){for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));const t=a[i];a[i]=a[j];a[j]=t}return a}
+const smooth=(a,b,x)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t)};
+
+/* ================= the transect: a closed path the probe drifts along ================= */
+const ringPts=[];
+for(let i=0;i<64;i++){
+  const th=i/64*Math.PI*2;
+  const rad=260+30*Math.sin(2*th+1)+18*Math.sin(5*th+.4);
+  const y=22*Math.sin(3*th)+10*Math.sin(7*th+2);
+  ringPts.push(new THREE.Vector3(Math.cos(th)*rad,y,Math.sin(th)*rad));
+}
+const ring=new THREE.CatmullRomCurve3(ringPts,true,'centripetal');
+ring.arcLengthDivisions=3000;
+const RL=ring.getLength();
+const RS=2400;
+const ringP=new Float32Array(RS*3), ringT=new Float32Array(RS*3);
+{const p=new THREE.Vector3(),t=new THREE.Vector3();
+ for(let i=0;i<RS;i++){ring.getPointAt(i/RS,p);ring.getTangentAt(i/RS,t);ringP.set([p.x,p.y,p.z],i*3);ringT.set([t.x,t.y,t.z],i*3);}}
+const wrapArc=a=>((a%RL)+RL)%RL;
+const arcIdx=a=>Math.floor(wrapArc(a)/RL*RS)%RS;
+function rightAt(i){const tx=ringT[i*3],tz=ringT[i*3+2];const l=Math.hypot(tx,tz)||1;return[-tz/l,0,tx/l]}
+function ringNear(x,y,z,g){let best=g,bd=1e18;for(let o=-14;o<=14;o++){const i=((g+o)%RS+RS)%RS;const dx=x-ringP[i*3],dy=y-ringP[i*3+1],dz=z-ringP[i*3+2];const d=dx*dx+dy*dy+dz*dz;if(d<bd){bd=d;best=i}}return best}
+function arcDiff(a,b){let d=wrapArc(b)-wrapArc(a);if(d>RL/2)d-=RL;if(d<-RL/2)d+=RL;return d}
+
+/* ================= network growth (seeded hyphal tip growth) ================= */
+const CAP=coarse?16000:40000;
+const NX=[],NY=[],NZ=[],NPar=[],NGen=[],NIdx=[],NRad=[];
+const branches=[];
+function addNode(x,y,z,par,gen,idx,r){NX.push(x);NY.push(y);NZ.push(z);NPar.push(par);NGen.push(gen);NIdx.push(idx);NRad.push(r);return NX.length-1}
+const GEN=[
+  {step:2.2,curl:.05,follow:.12,rMin:12,rMax:38,decay:.9996,pB:.17,aMin:40,aMax:80,ratio:[.32,.5]},
+  {step:1.9,curl:.16,follow:.02,rMin:7,rMax:58,decay:.986,pB:.11,aMin:35,aMax:75,ratio:[.45,.65],steps:[18,50]},
+  {step:1.5,curl:.28,follow:0,rMin:6,rMax:72,decay:.972,pB:.13,aMin:35,aMax:80,ratio:[.5,.7],steps:[10,30]},
+  {step:1.2,curl:.38,follow:0,rMin:5,rMax:78,decay:.965,pB:.09,aMin:30,aMax:80,ratio:[.55,.75],steps:[6,18]},
+  {step:1.0,curl:.45,follow:0,rMin:5,rMax:80,decay:.96,pB:0,aMin:0,aMax:0,ratio:[1,1],steps:[4,12]}
+];
+function dens(idx){const u=idx/RS;return .35+1.3*(.5+.5*Math.sin(u*Math.PI*10+1.3))*(.6+.4*Math.sin(u*Math.PI*26+.2))}
+function randSteps(g){const s=GEN[g].steps;return Math.floor(s[0]+R()*(s[1]-s[0]+1))}
+function spawnChild(n,dir,r,gen,idx,out){
+  const g=GEN[gen];const axis=norm3(cross3(dir,randUnit(R)));
+  const ang=(g.aMin+R()*(g.aMax-g.aMin))*Math.PI/180;
+  const cd=rot3(dir,axis,ang);
+  const rr=r*(g.ratio[0]+R()*(g.ratio[1]-g.ratio[0]));
+  out.push({parent:n,x:NX[n],y:NY[n],z:NZ[n],dx:cd[0],dy:cd[1],dz:cd[2],r:rr,gen:gen+1,idx,steps:randSteps(gen+1)});
+}
+function runTip(tip,out,budget){
+  const g=GEN[tip.gen];
+  const br={nodes:[],radii:[],gen:tip.gen,rand:R()};
+  let {x,y,z,dx,dy,dz,r,idx}=tip;
+  if(tip.parent>=0){br.nodes.push(tip.parent);br.radii.push(r)}
+  else{const n=addNode(x,y,z,-1,tip.gen,idx,r);br.nodes.push(n);br.radii.push(r)}
+  for(let s=0;s<tip.steps;s++){
+    if(NX.length>=budget)break;
+    const u=randUnit(R);dx+=u[0]*g.curl;dy+=u[1]*g.curl;dz+=u[2]*g.curl;
+    idx=ringNear(x,y,z,idx);
+    const rx=x-ringP[idx*3],ry=(y-ringP[idx*3+1])*1.6,rz=z-ringP[idx*3+2];
+    const dist=Math.hypot(rx,ry,rz)||1e-3;
+    if(dist<3.5&&s>0)break;
+    if(dist<g.rMin){const k=(g.rMin-dist)/g.rMin*.6;dx+=rx/dist*k;dy+=ry/dist*k;dz+=rz/dist*k}
+    else if(dist>g.rMax){const k=Math.min(.5,(dist-g.rMax)/g.rMax*1.5+.1);dx-=rx/dist*k;dy-=ry/dist*k;dz-=rz/dist*k}
+    if(g.follow){dx+=ringT[idx*3]*g.follow;dy+=ringT[idx*3+1]*g.follow;dz+=ringT[idx*3+2]*g.follow}
+    if(tip.gen===0)dy*=.9;
+    const l=Math.hypot(dx,dy,dz)||1;dx/=l;dy/=l;dz/=l;
+    x+=dx*g.step;y+=dy*g.step;z+=dz*g.step;r*=g.decay;
+    const n=addNode(x,y,z,br.nodes[br.nodes.length-1],tip.gen,idx,r);
+    br.nodes.push(n);br.radii.push(r);
+    if(tip.gen<4&&R()<g.pB*dens(idx))spawnChild(n,[dx,dy,dz],r,tip.gen,idx,out);
+    if(r<.035)break;
+  }
+  if(br.nodes.length>=2)branches.push(br);
+  return br;
+}
+/* trunks: eight long conduits chained around the transect, so the whole network is one connected body */
+let tips=[];
+{const K=8;const lists=[];
+ for(let k=0;k<K;k++){
+   const arc0=k*RL/K,i0=arcIdx(arc0),rv=rightAt(i0),a=R()*Math.PI*2,off=16+R()*14;
+   let sx=ringP[i0*3]+rv[0]*Math.cos(a)*off,sy=ringP[i0*3+1]+Math.sin(a)*off*.55,sz=ringP[i0*3+2]+rv[2]*Math.cos(a)*off;
+   let parent=-1;
+   if(k>0){let bd=1e18;for(const n of lists[k-1]){const d=(NX[n]-sx)**2+(NY[n]-sy)**2+(NZ[n]-sz)**2;if(d<bd){bd=d;parent=n}}
+     sx=NX[parent];sy=NY[parent];sz=NZ[parent];}
+   const br=runTip({parent,x:sx,y:sy,z:sz,dx:ringT[i0*3],dy:ringT[i0*3+1],dz:ringT[i0*3+2],r:1.15+R()*.6,gen:0,idx:i0,steps:Math.ceil(RL/K*1.18/GEN[0].step)},tips,CAP);
+   lists.push(br.nodes);
+ }}
+for(let gen=1;gen<=4;gen++){shuffle(tips,R);const next=[];for(const tp of tips){if(NX.length>=CAP)break;runTip(tp,next,CAP)}tips=next}
+
+/* feeding sites: a thick, near-horizontal conduit the animal walks along */
+const SITES=[{arc:205,side:1},{arc:RL*.56,side:-1}];
+{let extra=[];
+ SITES.forEach((site,si)=>{
+   const startArc=site.arc;
+   const i0=arcIdx(startArc),rv0=rightAt(i0);
+   const px=ringP[i0*3]+rv0[0]*34*site.side,py=ringP[i0*3+1]-5,pz=ringP[i0*3+2]+rv0[2]*34*site.side;
+   let parent=-1,bd=1e18;for(let n=0;n<NX.length;n++){const d=(NX[n]-px)**2+(NY[n]-py)**2+(NZ[n]-pz)**2;if(d<bd){bd=d;parent=n}}
+   const br={nodes:[parent],radii:[1.45],gen:0,rand:R(),site:si};
+   const pts=[];
+   for(let s=0;s<=54;s++){
+     const i=arcIdx(startArc+s*2),rv=rightAt(i),lat=(34+2.5*Math.sin(s*.21))*site.side;
+     const x=ringP[i*3]+rv[0]*lat,y=ringP[i*3+1]-5+1.3*Math.sin(s*.13+si),z=ringP[i*3+2]+rv[2]*lat;
+     const r=1.45-.15*s/54;
+     const n=addNode(x,y,z,br.nodes[br.nodes.length-1],0,i,r);
+     br.nodes.push(n);br.radii.push(r);pts.push(n);
+     if(s>3&&s<52&&R()<.16){const tx=ringT[i*3],ty=ringT[i*3+1],tz=ringT[i*3+2];spawnChild(n,[tx,ty,tz],r*1.1,1,i,extra)}
+   }
+   branches.push(br);site.trunk=pts;site.radius=1.4;
+ });
+ for(let gen=2;gen<=4;gen++){const next=[];for(const tp of extra){if(NX.length>=CAP+1600)break;runTip(tp,next,CAP+1600)}extra=next}
+}
+
+/* graph */
+const NN=NX.length;
+const nPos=new Float32Array(NN*3),nArc=new Float32Array(NN);
+for(let n=0;n<NN;n++){nPos[n*3]=NX[n];nPos[n*3+1]=NY[n];nPos[n*3+2]=NZ[n];nArc[n]=NIdx[n]/RS*RL}
+const childCount=new Int32Array(NN);for(let n=0;n<NN;n++)if(NPar[n]>=0)childCount[NPar[n]]++;
+const adjStart=new Int32Array(NN+1);for(let n=0;n<NN;n++)adjStart[n+1]=adjStart[n]+childCount[n]+(NPar[n]>=0?1:0);
+const adj=new Int32Array(adjStart[NN]);{const fill=adjStart.slice(0,NN);
+ for(let n=0;n<NN;n++){const p=NPar[n];if(p>=0){adj[fill[n]++]=p;adj[fill[p]++]=n}}}
+const byArc=new Int32Array(NN);for(let i=0;i<NN;i++)byArc[i]=i;
+const byArcSorted=Array.from(byArc).sort((a,b)=>nArc[a]-nArc[b]);
+const sortedArcs=new Float32Array(NN);for(let i=0;i<NN;i++)sortedArcs[i]=nArc[byArcSorted[i]];
+function lowerBound(a){let lo=0,hi=NN;while(lo<hi){const m=(lo+hi)>>1;if(sortedArcs[m]<a)lo=m+1;else hi=m}return lo}
+function forArcRange(a0,a1,fn){const s=wrapArc(a0);const len=a1-a0;let i=lowerBound(s);let walked=0,prev=s;
+  for(let c=0;c<NN;c++){const ii=(i+c)%NN;const a=sortedArcs[ii];let d=a-prev;if(d<0)d+=RL;walked+=d;prev=a;if(walked>len)break;if(fn(byArcSorted[ii])===false)break}}
+function randomNodeNearArc(a0,a1){const a=wrapArc(a0+Math.random()*(a1-a0));let i=lowerBound(a);if(i>=NN)i=0;return byArcSorted[i]}
+function ringDist(n){const i=NIdx[n];return Math.hypot(NX[n]-ringP[i*3],NY[n]-ringP[i*3+1],NZ[n]-ringP[i*3+2])}
+
+/* ================= readout nodes (marked junctions) ================= */
+const readouts=[];
+{const cands=[];for(let n=0;n<NN;n++){if(NGen[n]<=1&&childCount[n]>=2){const d=ringDist(n);if(d>10&&d<46)cands.push(n)}}
+ cands.sort((a,b)=>nArc[a]-nArc[b]);let last=-1e9;
+ for(const n of cands){if(nArc[n]-last>=34){readouts.push({n,kind:null});last=nArc[n]}}}
+const nodeId=n=>String((n*7919+311)%9973).padStart(4,'0');
+/* traces of feeding: static wounds at a few junctions */
+const WOUNDS=[];/* slot -> {x,y,z,r,amt} ; 0-4 traces, 5-6 feeding trails, 7 convergence */
+for(let i=0;i<8;i++)WOUNDS.push({x:0,y:0,z:0,r:1,amt:0});
+{let placed=0;for(let w=0;w<5&&readouts.length>10;w++){
+  let k=Math.floor((w+.5)*readouts.length/5);
+  for(let tries=0;tries<readouts.length;tries++){const ro=readouts[(k+tries)%readouts.length];
+    if(SITES.every(s=>Math.abs(arcDiff(s.arc,nArc[ro.n]))>110)&&!ro.kind){ro.kind='necrosis';const n=ro.n;
+      Object.assign(WOUNDS[placed],{x:NX[n],y:NY[n],z:NZ[n],r:7+R()*4,amt:1});placed++;break}}
+ }}
+SITES.forEach((s,si)=>{const n=s.trunk[Math.floor(s.trunk.length*.06)];readouts.push({n,kind:'necrosis',siteWound:si})});
+readouts.sort((a,b)=>nArc[a.n]-nArc[b.n]);
+
+/* ================= the instrument's records ================= */
+const OBJECTS=[
+ ['tooth, mammalian',1,3,'deep'],['coin, copper alloy',1.9,2.6,'modern'],['cable sheath, PVC',14,60,'modern'],
+ ['bone, long, partial',9,40,'deep'],['glass bead',.4,1.1,'modern'],['pipe section, cast iron',30,120,'modern'],
+ ['button, bone',1,2,'modern'],['nail, iron, corroded',4,11,'modern'],['seed, carbonised',.3,.8,'deep'],
+ ['vertebra',2,7,'deep'],['wire, braided copper',20,300,'modern'],['key, brass',4,8,'modern'],
+ ['flake, worked flint',2,6,'deep'],['spring, steel',2,9,'modern'],['cell, alkaline, depleted',4,6,'modern'],
+ ['antler tine',8,20,'deep'],['sherd, glazed ceramic',3,9,'modern'],['lens, glass',2,5,'modern'],
+ ['shell, marine',2,7,'fossil'],['circuit board, fragment',3,12,'modern']];
+const pk=(r,a)=>a[Math.floor(r()*a.length)];
+const rr=(r,a,b)=>a+r()*(b-a);
+const ri=(r,a,b)=>Math.floor(rr(r,a,b+1));
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+const neg=n=>'−'+fmt(Math.abs(n));
+const cm=v=>v>=100?(v/100).toFixed(2)+' m':(v<10?v.toFixed(1):Math.round(v))+' cm';
+const depthOf=y=>neg(12400-y)+' m';
+function makeRecord(ro){
+  const n=ro.n,r=mulberry32(n*2654435761>>>0);
+  const head=[['NODE',nodeId(n)],['DEPTH',depthOf(NY[n])]];
+  let kind=ro.kind;
+  if(!kind){const w=[['decomp',3],['contact',4],['decode',2],['dead',1.2],['moisture',1.2],['transfer',2],['timebase',.8]];
+    let t=r()*w.reduce((s,x)=>s+x[1],0);for(const x of w){t-=x[1];if(t<=0){kind=x[0];break}} kind=kind||'contact'}
+  let lines=[],extra=[];
+  if(kind==='decomp'){
+    lines=[['DECOMPOSITION',ri(r,3,97)+'%'],['SUBJECT',pk(r,['vertebrate, unclassified','root mass, unidentified','invertebrate, chitinous','vertebrate, small','organic, unknown'])],
+      ['CARBON RECOVERED',rr(r,.02,4).toFixed(2)+' mg'],['ROUTING',ri(r,1,19)+' recipients']];
+    extra=[[['RATE',rr(r,.1,3).toFixed(1)+' mg / day']],[['ACTION','continue']]];
+  }else if(kind==='contact'){
+    const o=pk(r,OBJECTS);const age=o[3]==='modern'?ri(r,15,140)+' yr':o[3]==='deep'?fmt(ri(r,1200,48000))+' yr':ri(r,2,90)+' Myr';
+    const fn=o[3]==='modern'?pk(r,['unknown','unknown','obsolete','none detected']):pk(r,['unknown','none detected','—']);
+    const act=pk(r,['encapsulate','encapsulate','route around','ignore','dissolve','absorb']);
+    lines=[['CONTACT',o[0]],['SIZE',cm(rr(r,o[1],o[2]))],['AGE ESTIMATE',age],['FUNCTION',fn],['ACTION',act]];
+    extra=[[['CONTACT SINCE',fmt(ri(r,3,9000))+' days']],act==='encapsulate'?[['ENCAPSULATION',ri(r,4,99)+'%']]:[['PRIORITY','low']]];
+  }else if(kind==='decode'){
+    const conf=r()<.12?rr(r,.2,.34):rr(r,0,.09);
+    lines=[['PATTERN','0x'+ri(r,16,255).toString(16).toUpperCase()],['OCCURRENCES',fmt(ri(r,12,9000))],
+      ['NEAREST MATCH',r()<.8?'none':pk(r,['word-length distribution, weak','prior pattern 0x'+ri(r,16,255).toString(16).toUpperCase(),'spike train, S. commune corpus'])],
+      ['CONFIDENCE',conf.toFixed(2)],['NOTE',pk(r,['may not be signal','may not be signal','rhythm only','no syntax inferred','insufficient sample'])]];
+    extra=[[['INTERVAL',rr(r,.4,22).toFixed(1)+' min']],[['ATTEMPT',fmt(ri(r,40,90000))]]];
+  }else if(kind==='dead'){
+    lines=[['STATUS','no activity'],['LAST SPIKE',fmt(ri(r,300,9000))+' days']];
+    extra=[[['TISSUE',pk(r,['intact','hollow','intact'])]],[['ACTION','none']]];
+  }else if(kind==='moisture'){
+    lines=[['EVENT','moisture'],['ORIGIN','surface'],['LAG',ri(r,3,70)+' h '+ri(r,0,59)+' m'],['VOLUME','+'+rr(r,.4,9).toFixed(1)+'%'],['NOTE',pk(r,['rain, probable','source unknown','rain, probable'])]];
+    extra=[[['DISTRIBUTION',ri(r,2,40)+' nodes']],[['ACTION','route']]];
+  }else if(kind==='transfer'){
+    lines=[['TRANSFER',pk(r,['phosphorus','nitrogen','carbon','water'])],['QUANTITY',rr(r,.01,2.4).toFixed(2)+' mg'],['TO','node '+String(ri(r,1,9972)).padStart(4,'0')],
+      ['DISTANCE',rr(r,.3,14).toFixed(1)+' km'],['DURATION',ri(r,2,400)+' days']];
+    extra=[[['RECIPIENT','unacknowledged']],[['ACTION','continue']]];
+  }else if(kind==='timebase'){
+    lines=[['LAST SPIKE',fmt(ri(r,120,4000))+' yr'],['TIMEBASE','local'],['STATUS','current']];
+    extra=[[['NEXT SPIKE','estimated']],[['NOTE','interval stable']]];
+  }else{ /* necrosis */
+    lines=[['NECROSIS','grazing damage, '+ri(r,6,22)+' cm'],['STATUS','ongoing'],['SUBJECT','vertebrate, unclassified'],['ACTION','reroute']];
+    extra=[[['MASS LOSS',rr(r,.2,6).toFixed(1)+' g']],[['PRIORITY','low']]];
+  }
+  return {lines:head.concat(lines),extra};
+}
+
+/* ================= geometry ================= */
+const CH=16;
+const chunkT=Array.from({length:CH},()=>[]),chunkL=Array.from({length:CH},()=>[]);
+for(const br of branches){const n1=br.nodes[Math.min(1,br.nodes.length-1)];const c=Math.floor(NIdx[n1]/RS*CH)%CH;(br.radii[0]>=.13?chunkT:chunkL)[c].push(br)}
+const rsFor=br=>br.gen===0?9:br.gen===1?7:br.gen===2?5:4;
+function buildTubes(list){
+  let nv=0,ni=0;for(const br of list){const rs=rsFor(br);nv+=br.nodes.length*rs;ni+=(br.nodes.length-1)*rs*6}
+  const pos=new Float32Array(nv*3),nor=new Float32Array(nv*3),th=new Float32Array(nv),rd=new Float32Array(nv),idx=new Uint32Array(ni);
+  let v=0,ii=0;
+  for(const br of list){
+    const rs=rsFor(br),m=br.nodes.length,base=v;let nx=0,ny=0,nz=0;
+    for(let j=0;j<m;j++){
+      const a=br.nodes[Math.max(0,j-1)],b=br.nodes[Math.min(m-1,j+1)];
+      let tx=NX[b]-NX[a],ty=NY[b]-NY[a],tz=NZ[b]-NZ[a];const tl=Math.hypot(tx,ty,tz)||1;tx/=tl;ty/=tl;tz/=tl;
+      if(j>0){const d=nx*tx+ny*ty+nz*tz;nx-=tx*d;ny-=ty*d;nz-=tz*d}
+      let nl=Math.hypot(nx,ny,nz);
+      if(j===0||nl<1e-5){let ax=0,ay=1,az=0;if(Math.abs(ty)>.9){ax=1;ay=0}nx=ty*az-tz*ay;ny=tz*ax-tx*az;nz=tx*ay-ty*ax;nl=Math.hypot(nx,ny,nz)||1}
+      nx/=nl;ny/=nl;nz/=nl;
+      const bx=ty*nz-tz*ny,by=tz*nx-tx*nz,bz=tx*ny-ty*nx;
+      let r=br.radii[j];if(j===m-1)r*=.3;
+      const n=br.nodes[j],px=NX[n],py=NY[n],pz=NZ[n];
+      for(let k=0;k<rs;k++){const an=k/rs*Math.PI*2,c=Math.cos(an),s=Math.sin(an);
+        const ox=nx*c+bx*s,oy=ny*c+by*s,oz=nz*c+bz*s;
+        pos[v*3]=px+ox*r;pos[v*3+1]=py+oy*r;pos[v*3+2]=pz+oz*r;nor[v*3]=ox;nor[v*3+1]=oy;nor[v*3+2]=oz;th[v]=r;rd[v]=br.rand;v++}
+    }
+    for(let j=0;j<m-1;j++)for(let k=0;k<rs;k++){const a=base+j*rs+k,b=base+j*rs+(k+1)%rs,c=base+(j+1)*rs+k,d=base+(j+1)*rs+(k+1)%rs;
+      idx[ii++]=a;idx[ii++]=b;idx[ii++]=c;idx[ii++]=b;idx[ii++]=d;idx[ii++]=c}
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('normal',new THREE.BufferAttribute(nor,3));
+  g.setAttribute('aThick',new THREE.BufferAttribute(th,1));g.setAttribute('aRand',new THREE.BufferAttribute(rd,1));
+  g.setIndex(new THREE.BufferAttribute(idx,1));g.computeBoundingSphere();return g;
+}
+function buildLines(list){
+  let ns=0;for(const br of list)ns+=br.nodes.length-1;
+  const pos=new Float32Array(ns*6),rd=new Float32Array(ns*2),th=new Float32Array(ns*2);let v=0;
+  for(const br of list)for(let j=0;j<br.nodes.length-1;j++){const a=br.nodes[j],b=br.nodes[j+1];
+    pos.set([NX[a],NY[a],NZ[a],NX[b],NY[b],NZ[b]],v*3);rd[v]=rd[v+1]=br.rand;th[v]=br.radii[j];th[v+1]=br.radii[j+1];v+=2}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  g.setAttribute('aRand',new THREE.BufferAttribute(rd,1));g.setAttribute('aThick',new THREE.BufferAttribute(th,1));g.computeBoundingSphere();return g;
+}
+
+/* ================= shaders ================= */
+const NPU=24,NWO=8;
+const U={uTime:{value:0},uFog:{value:P.fog},
+  uPH:{value:Array.from({length:NPU},()=>new THREE.Vector3())},uPT:{value:Array.from({length:NPU},()=>new THREE.Vector3())},
+  uPA:{value:new Float32Array(NPU)},uW:{value:Array.from({length:NWO},()=>new THREE.Vector4())},uWA:{value:new Float32Array(NWO)},
+  uOrgan:{value:new THREE.Vector4()}};
+const COMMON=`
+#define NP ${NPU}
+#define NW ${NWO}
+uniform float uTime; uniform float uFog;
+uniform vec3 uPH[NP]; uniform vec3 uPT[NP]; uniform float uPA[NP];
+uniform vec4 uW[NW]; uniform float uWA[NW]; uniform vec4 uOrgan;
+float segD(vec3 p, vec3 a, vec3 b, out float h){ vec3 pa=p-a, ba=b-a; float L2=max(dot(ba,ba),1e-4); h=clamp(dot(pa,ba)/L2,0.,1.); return length(pa-ba*h); }
+float hash3(vec3 p){ p=fract(p*.3183099+.1); p*=17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+float glow(vec3 w, float thick){ float g=0.; for(int i=0;i<NP;i++){ if(uPA[i]<=0.) continue; float h; float d=segD(w,uPT[i],uPH[i],h); float r=.55+thick*1.6; g+=uPA[i]*exp(-d*d/(r*r))*(.12+.88*h*h); } return g; }
+float necro(vec3 w){ float m=0.; for(int i=0;i<NW;i++){ if(uWA[i]<=0.) continue; float d=distance(w,uW[i].xyz); m=max(m,uWA[i]*smoothstep(uW[i].w,uW[i].w*.35,d)); } return m; }
+float fogF(vec3 w){ float d=length(w-cameraPosition); return exp(-pow(d*uFog,2.)); }
+`;
+const tubeMat=new THREE.ShaderMaterial({uniforms:U,
+  vertexShader:COMMON+`
+attribute float aThick; attribute float aRand;
+varying vec3 vW; varying vec3 vN; varying float vRand; varying float vThick;
+void main(){
+  vec3 p=position; vec3 n=normal;
+  float sw=0.;
+  for(int i=0;i<NP;i++){ if(uPA[i]<=0.) continue; float h; float d=segD(p,uPT[i],uPH[i],h); sw+=uPA[i]*exp(-d*d/(1.+aThick*aThick*4.))*(.3+.7*h); }
+  p+=n*aThick*.55*min(sw,1.5);
+  if(uOrgan.w>0.){
+    float d=distance(p,uOrgan.xyz); float w=uOrgan.w*smoothstep(34.,3.,d);
+    float throb=.5+.5*sin(uTime*2.3-d*.35);
+    p+=n*aThick*(2.4*w+1.5*w*throb);
+    p+=(uOrgan.xyz-p)*w*.24;
+  }
+  vW=p; vN=n; vRand=aRand; vThick=aThick;
+  gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);
+}`,
+  fragmentShader:COMMON+`
+varying vec3 vW; varying vec3 vN; varying float vRand; varying float vThick;
+void main(){
+  vec3 V=normalize(cameraPosition-vW); vec3 N=normalize(vN);
+  float fres=pow(1.-abs(dot(N,V)),2.4);
+  float L=.04+fres*(.48+.26*vRand)+(1.-fres)*.05;
+  float stri=.5+.5*sin(dot(vW,vec3(.9,1.3,.7))*3.+vRand*20.);
+  L*=.86+.14*stri;
+  float dm=necro(vW);
+  L*=1.-dm*(.5+.45*hash3(floor(vW*2.2)));
+  L+=glow(vW,vThick)*1.4;
+  if(uOrgan.w>0.){ float d=distance(vW,uOrgan.xyz); L+=uOrgan.w*smoothstep(30.,0.,d)*(.5+.5*sin(uTime*2.3-d*.35))*.3*fres; }
+  L*=fogF(vW);
+  gl_FragColor=vec4(vec3(L),1.);
+}`});
+const lineMat=new THREE.ShaderMaterial({uniforms:U,
+  vertexShader:COMMON+`
+attribute float aRand; attribute float aThick; varying vec3 vW; varying float vRand; varying float vThick;
+void main(){ vW=position; vRand=aRand; vThick=aThick; gl_Position=projectionMatrix*viewMatrix*vec4(position,1.); }`,
+  fragmentShader:COMMON+`
+varying vec3 vW; varying float vRand; varying float vThick;
+void main(){
+  float L=.13+.16*vRand;
+  L*=1.-necro(vW)*.8;
+  L+=glow(vW,vThick)*1.2;
+  L*=fogF(vW);
+  gl_FragColor=vec4(vec3(L),1.);
+}`});
+
+const scene=new THREE.Scene();
+for(let c=0;c<CH;c++){
+  if(chunkT[c].length){const m=new THREE.Mesh(buildTubes(chunkT[c]),tubeMat);m.matrixAutoUpdate=false;scene.add(m)}
+  if(chunkL[c].length){const m=new THREE.LineSegments(buildLines(chunkL[c]),lineMat);m.matrixAutoUpdate=false;scene.add(m)}
+}
+
+/* drifting particulate */
+{const N=coarse?1600:3600,pos=new Float32Array(N*3),rd=new Float32Array(N);
+ for(let i=0;i<N;i++){const a=R()*RL,ix=arcIdx(a),rv=rightAt(ix),ang=R()*Math.PI*2,d=4+Math.pow(R(),.7)*78;
+   pos[i*3]=ringP[ix*3]+rv[0]*Math.cos(ang)*d;pos[i*3+1]=ringP[ix*3+1]+Math.sin(ang)*d*.6;pos[i*3+2]=ringP[ix*3+2]+rv[2]*Math.cos(ang)*d;rd[i]=R()}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('aRand',new THREE.BufferAttribute(rd,1));
+ const m=new THREE.ShaderMaterial({uniforms:{uTime:U.uTime,uFog:U.uFog,uPR:{value:1}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+   vertexShader:`uniform float uTime; uniform float uPR; attribute float aRand; varying float vA; uniform float uFog;
+   void main(){ vec3 p=position+vec3(sin(uTime*.11+aRand*40.),sin(uTime*.07+aRand*13.)*.6,cos(uTime*.09+aRand*21.))*1.3;
+     vec4 mv=modelViewMatrix*vec4(p,1.); float d=length(mv.xyz); vA=exp(-pow(d*uFog,2.))*(.12+.16*aRand);
+     gl_PointSize=clamp(90./d,1.,3.)*uPR; gl_Position=projectionMatrix*mv; }`,
+   fragmentShader:`varying float vA; void main(){ vec2 c=gl_PointCoord-.5; if(dot(c,c)>.25) discard; gl_FragColor=vec4(vec3(vA),1.); }`});
+ const pts=new THREE.Points(g,m);pts.frustumCulled=false;scene.add(pts);var dustMat=m;}
+
+/* pulse cores */
+const pulseGeo=new THREE.BufferGeometry();
+pulseGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(NPU*3),3));
+pulseGeo.setAttribute('aAmp',new THREE.BufferAttribute(new Float32Array(NPU),1));
+const pulseMat=new THREE.ShaderMaterial({uniforms:{uFog:U.uFog,uPR:{value:1}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  vertexShader:`attribute float aAmp; varying float vA; uniform float uFog; uniform float uPR;
+  void main(){ vec4 mv=modelViewMatrix*vec4(position,1.); float d=length(mv.xyz); vA=aAmp*exp(-pow(d*uFog,2.));
+    gl_PointSize=clamp(260./d,2.,10.)*uPR*step(.001,aAmp); gl_Position=projectionMatrix*mv; }`,
+  fragmentShader:`varying float vA; void main(){ vec2 c=gl_PointCoord-.5; float r=dot(c,c); if(r>.25) discard; gl_FragColor=vec4(vec3(vA*1.6*(1.-r*3.)),1.); }`});
+const pulsePts=new THREE.Points(pulseGeo,pulseMat);pulsePts.frustumCulled=false;scene.add(pulsePts);
+
+/* pale body shader (animal + organ) */
+const bodyVert=`uniform float uTime; uniform float uDisp; varying vec3 vN; varying vec3 vV; varying float vD; varying vec3 vL;
+void main(){ vec3 p=position;
+  if(uDisp>0.){ float k=sin(p.x*2.7+uTime*1.3)*sin(p.y*3.1-uTime*1.1)*sin(p.z*2.3+uTime*.9); float k2=sin(dot(p,vec3(5.1,4.3,6.7))+uTime*2.)*.5; p*=1.+uDisp*(.45*k+.12*k2); }
+  vL=p; vec4 mv=modelViewMatrix*vec4(p,1.); vN=normalize(normalMatrix*normal); vV=-mv.xyz; vD=length(mv.xyz); gl_Position=projectionMatrix*mv; }`;
+const bodyFrag=`uniform float uFog; uniform float uBase; uniform float uRim; uniform float uStri; uniform float uTime;
+varying vec3 vN; varying vec3 vV; varying float vD; varying vec3 vL;
+void main(){ float f=pow(1.-abs(dot(normalize(vN),normalize(vV))),2.); float L=uBase+f*uRim+(1.-f)*.05;
+  if(uStri>0.) L+=uStri*f*(.5+.5*sin(vL.y*9.+atan(vL.z,vL.x)*6.+uTime));
+  L*=exp(-pow(vD*uFog,2.)); gl_FragColor=vec4(vec3(L),1.); }`;
+const creatureMat=new THREE.ShaderMaterial({uniforms:{uFog:U.uFog,uTime:U.uTime,uDisp:{value:0},uBase:{value:.05},uRim:{value:.78},uStri:{value:0}},vertexShader:bodyVert,fragmentShader:bodyFrag});
+const organMat=new THREE.ShaderMaterial({uniforms:{uFog:U.uFog,uTime:U.uTime,uDisp:{value:1},uBase:{value:.04},uRim:{value:.7},uStri:{value:.18}},vertexShader:bodyVert,fragmentShader:bodyFrag});
+const organ=new THREE.Mesh(new THREE.IcosahedronGeometry(1,4),organMat);organ.visible=false;scene.add(organ);
+
+/* ================= the animal ================= */
+const Y=new THREE.Vector3(0,1,0),UP=new THREE.Vector3(0,1,0);
+const cyl=new THREE.CylinderGeometry(.65,1,1,8,1),sph=new THREE.SphereGeometry(1,18,12);
+const animal=new THREE.Group();animal.visible=false;scene.add(animal);
+const body=new THREE.Mesh(sph,creatureMat);body.scale.set(1.5,1.35,4.8);animal.add(body);
+const head=new THREE.Mesh(sph,creatureMat);animal.add(head);
+function seg(){const m=new THREE.Mesh(cyl,creatureMat);animal.add(m);return m}
+const neck=[seg(),seg()],tail=[seg(),seg()];
+const LEGS=[{hip:[-1.25,-.4,3.0],side:-1,front:1,off:.25},{hip:[1.25,-.4,3.0],side:1,front:1,off:.75},
+            {hip:[-1.3,-.4,-3.2],side:-1,front:-1,off:0},{hip:[1.3,-.4,-3.2],side:1,front:-1,off:.5}];
+LEGS.forEach(l=>{l.up=seg();l.lo=seg();l.knee=new THREE.Vector3();l.foot=new THREE.Vector3();l.hipV=new THREE.Vector3(...l.hip)});
+const _a=new THREE.Vector3(),_b=new THREE.Vector3(),_c=new THREE.Vector3(),_d=new THREE.Vector3();
+function setSeg(m,a,b,rad){_a.subVectors(b,a);const len=_a.length()||.001;m.position.addVectors(a,b).multiplyScalar(.5);
+  m.quaternion.setFromUnitVectors(Y,_a.multiplyScalar(1/len));m.scale.set(rad,len,rad)}
+const STAND=6.2,ULEN=4.0,LLEN=4.4,STRIDE=2.6,WALK=.5;
+SITES.forEach(s=>{
+  s.pts=s.trunk.map(n=>new THREE.Vector3(NX[n],NY[n],NZ[n]));s.cum=[0];
+  for(let i=1;i<s.pts.length;i++)s.cum.push(s.cum[i-1]+s.pts[i].distanceTo(s.pts[i-1]));
+  s.len=s.cum[s.cum.length-1];s.prog=s.len*.15;s.trailStart=s.len*.02;s.phase=0;s.trailAmt=1;
+});
+function siteAt(s,d,out){d=Math.max(0,Math.min(s.len-.001,d));let i=1;while(i<s.cum.length-1&&s.cum[i]<d)i++;
+  const t=(d-s.cum[i-1])/(s.cum[i]-s.cum[i-1]||1);return out.lerpVectors(s.pts[i-1],s.pts[i],t)}
+let activeSite=null;
+const animalPts=[];for(let i=0;i<14;i++)animalPts.push(new THREE.Vector3());
+function updateAnimal(dt,T){
+  activeSite=null;
+  for(const s of SITES){if(Math.abs(arcDiff(camArc,s.arc+30))<300){activeSite=s;break}}
+  if(!activeSite){animal.visible=false;return}
+  const s=activeSite;animal.visible=true;
+  const sp=(reduced||s.prog>=s.len*.93)?0:WALK;
+  s.prog+=sp*dt;if(sp>0)s.phase+=dt/(.7*STRIDE/WALK);
+  const p=siteAt(s,s.prog,_b),pa=siteAt(s,s.prog+3,_c),pb=siteAt(s,s.prog-3,_d);
+  const f=new THREE.Vector3().subVectors(pa,pb);f.y*=.4;f.normalize();
+  const x=new THREE.Vector3().crossVectors(UP,f).normalize(),yv=new THREE.Vector3().crossVectors(f,x);
+  animal.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,yv,f));
+  const bob=sp>0?.15*Math.sin(s.phase*Math.PI*4):0;
+  animal.position.copy(p).addScaledVector(UP,s.radius+STAND+bob);
+  body.position.set(0,0,0);body.rotation.set(.05,0,0);
+  /* legs: stance 70% / swing 30%, two-bone IK, knees high and outward */
+  LEGS.forEach(l=>{
+    const c=((s.phase+l.off)%1+1)%1;let fz,fy=-STAND-bob;
+    if(c<.7){fz=l.hip[2]+STRIDE*(.5-c/.7)}else{const t=(c-.7)/.3;fz=l.hip[2]+STRIDE*(-.5+t);fy+=.9*Math.sin(Math.PI*t)}
+    l.foot.set(l.side*.75,fy,fz);
+    const H=l.hipV;_a.subVectors(l.foot,H);let d=_a.length();d=Math.min(d,ULEN+LLEN-.05);_a.normalize();
+    const ca=(ULEN*ULEN+d*d-LLEN*LLEN)/(2*ULEN*d);const sa=Math.sqrt(Math.max(0,1-ca*ca));
+    _c.set(l.side*.55,1,.15*l.front).normalize();_c.addScaledVector(_a,-_c.dot(_a)).normalize();
+    l.knee.copy(H).addScaledVector(_a,ULEN*ca).addScaledVector(_c,ULEN*sa);
+    _d.copy(H).addScaledVector(_a,d);
+    setSeg(l.up,H,l.knee,.3);setSeg(l.lo,l.knee,_d,.17);
+  });
+  /* neck down to the conduit: grazing, never raised toward anything */
+  const nb=new THREE.Vector3(0,.5,4.2),nm=new THREE.Vector3(0,.7,6.3);
+  const hp=new THREE.Vector3(.2*Math.sin(T*.4),-4.6+.35*Math.sin(T*.9),7.7+.3*Math.sin(T*.7));
+  setSeg(neck[0],nb,nm,.55);setSeg(neck[1],nm,hp,.4);
+  head.position.copy(hp);head.scale.set(.55,.5,1.3);
+  _a.subVectors(hp,nm).normalize();head.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),_a);
+  const tb=new THREE.Vector3(0,0,-4.6),tm=new THREE.Vector3(.5*Math.sin(T*.5),-1.2,-8),tt=new THREE.Vector3(1.2*Math.sin(T*.5-.8),-3,-11);
+  setSeg(tail[0],tb,tm,.36);setSeg(tail[1],tm,tt,.18);
+  /* feeding trail: necrosis grows behind it */
+  const si=SITES.indexOf(s);const a0=siteAt(s,s.trailStart,new THREE.Vector3());
+  const mid=new THREE.Vector3().addVectors(a0,p).multiplyScalar(.5);
+  Object.assign(WOUNDS[5+si],{x:mid.x,y:mid.y,z:mid.z,r:.5*a0.distanceTo(p)+4.5,amt:s.trailAmt});
+  /* points for the instrument's hull */
+  animal.updateMatrixWorld(true);
+  const lp=[hp,nm,new THREE.Vector3(0,1.3,0),new THREE.Vector3(0,0,4.6),new THREE.Vector3(0,0,-4.6),tt];
+  LEGS.forEach(l=>{lp.push(l.knee,l.foot)});
+  lp.forEach((v,i)=>animal.localToWorld(animalPts[i].copy(v)));
+}
+
+/* ================= renderer + post ================= */
+const isGL2=renderer.capabilities.isWebGL2;
+renderer.setClearColor(0x000000,1);renderer.autoClear=true;
+const rt=new THREE.WebGLRenderTarget(4,4,{minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter,type:isGL2?THREE.HalfFloatType:THREE.UnsignedByteType,depthBuffer:true});
+const camera=new THREE.PerspectiveCamera(62,1,.1,330);
+const hex=h=>new THREE.Vector3(((h>>16)&255)/255,((h>>8)&255)/255,(h&255)/255);
+const postMat=new THREE.ShaderMaterial({uniforms:{tScene:{value:rt.texture},uRT:{value:new THREE.Vector2(4,4)},uPS:{value:2},uTime:{value:0},
+  uGrain:{value:P.grain},uExposure:{value:P.exposure},uStatic:{value:0},uFade:{value:0},
+  c0:{value:hex(0x0A0B0C)},c1:{value:hex(0x3A3A3C)},c2:{value:hex(0xCFCAC0)},c3:{value:hex(0xF2EDE3)}},
+  depthTest:false,depthWrite:false,
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
+  fragmentShader:`uniform sampler2D tScene; uniform vec2 uRT; uniform float uPS,uTime,uGrain,uExposure,uStatic,uFade; uniform vec3 c0,c1,c2,c3; varying vec2 vUv;
+  float b2(vec2 a){ a=floor(a); return fract(dot(a,vec2(.5,a.y*.75))); }
+  float b4(vec2 a){ return b2(.5*a)*.25+b2(a); }
+  float b8(vec2 a){ return b4(.5*a)*.25+b2(a); }
+  float h12(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+  void main(){
+    vec2 cell=floor(gl_FragCoord.xy/uPS);
+    vec2 uv=(cell+.5)/uRT;
+    float band=floor(uv.y*48.);
+    uv.x+=uStatic*(h12(vec2(band,floor(uTime*24.)))-.5)*.09;
+    float L=texture2D(tScene,uv).r*uExposure;
+    vec2 q=uv-.5; q.x*=uRT.x/uRT.y;
+    L*=mix(.22,1.,smoothstep(1.05,.18,length(q)*1.15));
+    float n=h12(cell+fract(uTime*7.13)*517.);
+    L+=(n-.5)*uGrain;
+    L=mix(L,n*.85,uStatic);
+    L=max(0.,(L-.035)/(1.-.035));
+    L*=uFade;
+    float v=clamp(L,0.,1.)*3.; float b=floor(v); float f=v-b;
+    float lv=min(b+(f>b8(cell)?1.:0.),3.);
+    vec3 col=lv<.5?c0:lv<1.5?c1:lv<2.5?c2:c3;
+    gl_FragColor=vec4(col,1.);
+  }`});
+const postScene=new THREE.Scene(),postCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),postMat));
+let VW=1,VH=1,PR=1;
+function resize(){
+  VW=window.innerWidth;VH=window.innerHeight;PR=Math.min(window.devicePixelRatio||1,2);
+  renderer.setPixelRatio(PR);renderer.setSize(VW,VH,false);
+  camera.aspect=VW/VH;camera.updateProjectionMatrix();
+  const w=Math.ceil(VW/P.dither),h=Math.ceil(VH/P.dither);
+  rt.setSize(w,h);postMat.uniforms.uRT.value.set(w,h);postMat.uniforms.uPS.value=P.dither*PR;
+  const ppr=1/P.dither;dustMat.uniforms.uPR.value=ppr*1.6;pulseMat.uniforms.uPR.value=ppr*1.6;
+  $('#ret').setAttribute('transform',`translate(${VW/2},${VH/2})`);
+}
+window.addEventListener('resize',resize);
+
+/* ================= camera: drift forward, you choose only where to look ================= */
+let camArc=0,yaw=0,pitch=0,tYaw=0,tPitch=0,speedMul=1,tSpeedMul=1,lookMoved=0,lastTouch=0;
+const YMAX=.9,PMAX=.55;
+const fwd=new THREE.Vector3(),rgt=new THREE.Vector3(),up2=new THREE.Vector3(),lookDir=new THREE.Vector3(0,0,1),camPos=new THREE.Vector3(),_p=new THREE.Vector3(),_q=new THREE.Vector3();
+let touchId=null,tx0=0,ty0=0;
+canvas.addEventListener('pointermove',e=>{
+  if(pageOpen)return;
+  if(e.pointerType==='mouse'){tYaw=((e.clientX/VW)-.5)*2*YMAX;tPitch=(.5-(e.clientY/VH))*2*PMAX;lookMoved+=Math.abs(e.movementX||0)+Math.abs(e.movementY||0)}
+  else if(touchId===e.pointerId){const dx=e.clientX-tx0,dy=e.clientY-ty0;tx0=e.clientX;ty0=e.clientY;
+    tYaw=Math.max(-YMAX,Math.min(YMAX,tYaw-dx/VW*2.4));tPitch=Math.max(-PMAX,Math.min(PMAX,tPitch+dy/VH*1.8));lookMoved+=Math.abs(dx)+Math.abs(dy);lastTouch=performance.now()}
+});
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'){touchId=e.pointerId;tx0=e.clientX;ty0=e.clientY;canvas.setPointerCapture(e.pointerId)}});
+canvas.addEventListener('pointerup',e=>{if(e.pointerId===touchId){touchId=null;lastTouch=performance.now()}});
+canvas.addEventListener('pointercancel',()=>{touchId=null});
+function updateCamera(dt,T){
+  speedMul+=(tSpeedMul-speedMul)*(1-Math.exp(-dt*.8));
+  const spd=reduced?0:P.speed*speedMul;camArc=wrapArc(camArc+spd*dt);
+  ring.getPointAt(camArc/RL,_p);ring.getPointAt(wrapArc(camArc+6)/RL,_q);
+  fwd.subVectors(_q,_p).normalize();rgt.crossVectors(fwd,UP).normalize();up2.crossVectors(rgt,fwd);
+  const sw=reduced?0:1;
+  camPos.copy(_p).addScaledVector(rgt,Math.sin(T*.071)*3*sw).addScaledVector(up2,Math.sin(T*.053+1)*1.8*sw);
+  if(coarse&&touchId===null&&!lock&&performance.now()-lastTouch>2600){tYaw*=1-Math.min(1,dt*.6);tPitch*=1-Math.min(1,dt*.6)}
+  const k=1-Math.exp(-dt*3);yaw+=(tYaw-yaw)*k;pitch+=(tPitch-pitch)*k;
+  lookDir.copy(fwd).multiplyScalar(Math.cos(pitch)*Math.cos(yaw)).addScaledVector(rgt,Math.cos(pitch)*Math.sin(yaw)).addScaledVector(up2,Math.sin(pitch)).normalize();
+  camera.position.copy(camPos);camera.up.copy(up2);_q.copy(camPos).add(lookDir);camera.lookAt(_q);
+  camera.updateMatrixWorld();
+}
+
+/* ================= pulses: action potentials walking the graph ================= */
+const pulses=[];let nextBurst=1.2,pendingSpawn=[];
+let bfs=null,convTarget=-1;
+function chooseNext(cur,from,conv){
+  const s=adjStart[cur],e=adjStart[cur+1];
+  if(conv){if(cur===convTarget)return -1;for(let i=s;i<e;i++){const m=adj[i];if(bfs[m]===bfs[cur]-1)return m}return -1}
+  const cnt=e-s-(from>=0?1:0);if(cnt<=0)return -1;
+  let pick=Math.floor(Math.random()*cnt);
+  for(let i=s;i<e;i++){const m=adj[i];if(m===from)continue;if(pick--===0)return m}return -1;
+}
+function spawnPulse(node,conv){
+  if(pulses.length>=NPU){if(!conv)return;const i=pulses.findIndex(p=>!p.conv);if(i<0)return;pulses.splice(i,1)}
+  const nx=chooseNext(node,-1,conv);if(nx<0)return;
+  pulses.push({a:node,b:nx,t:0,speed:conv?30+Math.random()*9:14+Math.random()*10,age:0,life:conv?14:2.5+Math.random()*4.5,conv,hist:[],dead:false,fade:0,x:NX[node],y:NY[node],z:NZ[node]});
+}
+let absorbed=0;
+function updatePulses(dt,T){
+  if(reduced){U.uPA.value.fill(0);return}
+  if(!conv.active&&driftStarted){
+    nextBurst-=dt;
+    if(nextBurst<=0){const node=randomNodeNearArc(camArc-10,camArc+140);const n=1+Math.floor(Math.random()*4);
+      for(let i=0;i<n;i++)pendingSpawn.push({node,at:T+i*.13});nextBurst=-Math.log(1-Math.random())*1.6+.2}
+  }
+  for(let i=pendingSpawn.length-1;i>=0;i--)if(T>=pendingSpawn[i].at){spawnPulse(pendingSpawn[i].node,false);pendingSpawn.splice(i,1)}
+  for(let i=pulses.length-1;i>=0;i--){
+    const p=pulses[i];p.age+=dt;
+    if(!p.dead){
+      let segLen=Math.hypot(NX[p.b]-NX[p.a],NY[p.b]-NY[p.a],NZ[p.b]-NZ[p.a])||.5;
+      p.t+=p.speed*dt/segLen;
+      let guard=0;
+      while(p.t>=1&&!p.dead&&guard++<40){const nx=chooseNext(p.b,p.a,p.conv);
+        if(nx<0){p.dead=true;p.t=1;if(p.conv&&p.b===convTarget)absorbed++;break}
+        p.t-=1;p.a=p.b;p.b=nx;segLen=Math.hypot(NX[p.b]-NX[p.a],NY[p.b]-NY[p.a],NZ[p.b]-NZ[p.a])||.5}
+      if(p.age>p.life)p.dead=true;
+    }
+    const t=Math.min(1,p.t);
+    p.x=NX[p.a]+(NX[p.b]-NX[p.a])*t;p.y=NY[p.a]+(NY[p.b]-NY[p.a])*t;p.z=NZ[p.a]+(NZ[p.b]-NZ[p.a])*t;
+    p.hist.push(T,p.x,p.y,p.z);if(p.hist.length>160)p.hist.splice(0,4);
+    if(p.dead){p.fade+=dt;if(p.fade>.3){pulses.splice(i,1);continue}}
+  }
+  const PH=U.uPH.value,PT=U.uPT.value,PA=U.uPA.value,gp=pulseGeo.attributes.position.array,ga=pulseGeo.attributes.aAmp.array;
+  for(let i=0;i<NPU;i++){
+    const p=pulses[i];
+    if(!p){PA[i]=0;ga[i]=0;continue}
+    const amp=p.dead?Math.max(0,1-p.fade/.3):Math.min(1,p.age/.12);
+    PH[i].set(p.x,p.y,p.z);
+    const trail=p.conv?.32:.22;let j=0;const h=p.hist;while(j+4<h.length&&h[j]<T-trail)j+=4;
+    PT[i].set(h[j+1],h[j+2],h[j+3]);
+    PA[i]=amp;gp[i*3]=p.x;gp[i*3+1]=p.y;gp[i*3+2]=p.z;ga[i]=amp;
+  }
+  pulseGeo.attributes.position.needsUpdate=true;pulseGeo.attributes.aAmp.needsUpdate=true;
+}
+
+/* ================= instrument HUD ================= */
+const elHull=$('#hullp'),elOverlay=$('#overlay'),elRead=$('#readout'),elChip=$('#chip'),elPrompt=$('#prompt'),elSigBar=$('#sigbar'),elSigV=$('#sigv');
+const markers=[];for(let i=0;i<10;i++){const m=document.createElement('div');m.className='mk';$('#markers').appendChild(m);markers.push(m)}
+const _pr=new THREE.Vector3();
+function project(x,y,z){_pr.set(x,y,z).project(camera);const px=(_pr.x+1)/2*VW,py=(1-_pr.y)/2*VH;return{x:Math.max(-30,Math.min(VW+30,px)),y:Math.max(-30,Math.min(VH+30,py)),ok:_pr.z<1&&_pr.z>-1}}
+function hull(pts){if(pts.length<3)return pts.slice();pts=pts.slice().sort((a,b)=>a.x-b.x||a.y-b.y);
+  const cr=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);const lo=[],hi=[];
+  for(const p of pts){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p)}
+  for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(hi.length>=2&&cr(hi[hi.length-2],hi[hi.length-1],p)<=0)hi.pop();hi.push(p)}
+  hi.pop();lo.pop();return lo.concat(hi)}
+function neighborhood(n,hops,max){const out=[n],seen=new Set([n]);let front=[n];
+  for(let h=0;h<hops&&out.length<max;h++){const nf=[];for(const c of front)for(let i=adjStart[c];i<adjStart[c+1];i++){const m=adj[i];if(!seen.has(m)){seen.add(m);out.push(m);nf.push(m);if(out.length>=max)break}}front=nf}
+  return out}
+/* typed panel */
+const panel={rows:[],budget:0,
+  clear(){this.rows=[];elRead.innerHTML='';this.budget=0},
+  add(k,v){const row=document.createElement('div');row.className='row'+(k===''?' gap':'');const ke=document.createElement('span');ke.className='k';const ve=document.createElement('span');ve.className='v';
+    row.appendChild(ke);row.appendChild(ve);elRead.appendChild(row);this.rows.push({k,v,ke,ve,shown:0});return this.rows[this.rows.length-1]},
+  update(dt){this.budget+=dt*170;for(const r of this.rows){const full=r.k.length+r.v.length;if(r.shown>=full)continue;
+    const take=Math.min(full-r.shown,Math.floor(this.budget));if(take<=0)break;this.budget-=take;r.shown+=take;
+    r.ke.textContent=r.k.slice(0,Math.min(r.shown,r.k.length));r.ve.textContent=r.v.slice(0,Math.max(0,r.shown-r.k.length));if(r.shown<full)break}
+    if(this.budget>40)this.budget=40},
+  set(row,v){row.v=v;if(row.shown>=row.k.length){row.shown=row.k.length+v.length;row.ve.textContent=v}}
+};
+let lock=null,cand=null,candT=0,releaseT=0,lockT=0,extraShown=0,everLocked=false;
+const LOCK_IN=.1,LOCK_OUT=.19;
+function setPrompt(t){if(elPrompt.textContent!==t){elPrompt.textContent=t}elPrompt.style.opacity=t?1:0}
+function placePanel(pts){
+  if(!pts.length){elRead.classList.remove('on');elChip.classList.remove('on');elHull.setAttribute('points','');return}
+  let cx=0,cy=0;pts.forEach(p=>{cx+=p.x;cy+=p.y});cx/=pts.length;cy/=pts.length;
+  const H=hull(pts).map(p=>{const dx=p.x-cx,dy=p.y-cy,l=Math.hypot(dx,dy)||1;return{x:p.x+dx/l*12,y:p.y+dy/l*12}});
+  elHull.setAttribute('points',H.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' '));
+  let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9,tl=H[0];
+  H.forEach(p=>{minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x);maxY=Math.max(maxY,p.y);if(p.x+p.y<tl.x+tl.y)tl=p});
+  elChip.style.transform=`translate(${(tl.x-2).toFixed(0)}px,${(tl.y-17).toFixed(0)}px)`;
+  const w=elRead.offsetWidth,h=elRead.offsetHeight;
+  let left=maxX+22;if(left+w>VW-16)left=minX-22-w;left=Math.max(16,Math.min(VW-16-w,left));
+  let top=Math.max(64,Math.min(VH-h-96,minY));
+  elRead.style.transform=`translate(${left.toFixed(0)}px,${top.toFixed(0)}px)`;
+}
+function lockOn(target){
+  lock=target;lockT=0;extraShown=0;panel.clear();everLocked=true;
+  if(target.type==='node'){
+    target.rec=makeRecord(target.ro);target.rec.lines.forEach(([k,v])=>panel.add(k,v));
+    target.hood=neighborhood(target.ro.n,3,16);elChip.textContent='#'+nodeId(target.ro.n);
+  }else{
+    panel.add('CONTACT','mobile, biological');target.rangeRow=panel.add('RANGE','—');panel.add('BEARING','away');panel.add('CLASS','no match');
+    elChip.textContent='#'+nodeId(9000+SITES.indexOf(activeSite));
+  }
+  elRead.classList.add('on');elChip.classList.add('on');elOverlay.classList.add('locked');elHull.style.opacity=1;
+}
+function release(){lock=null;elRead.classList.remove('on');elChip.classList.remove('on');elOverlay.classList.remove('locked');elHull.style.opacity=0}
+function angTo(x,y,z){_a.set(x-camPos.x,y-camPos.y,z-camPos.z);const d=_a.length();return{d,ang:Math.acos(Math.max(-1,Math.min(1,_a.dot(lookDir)/(d||1))))}}
+const animalCenter=new THREE.Vector3();
+function updateInstrument(dt){
+  panel.update(dt);
+  if(conv.active){
+    for(const m of markers)m.style.opacity=0;
+    const pts=conv.hood.map(n=>{const s=1+organAmt*1.4;return project(conv.pos.x+(NX[n]-conv.pos.x)*s,conv.pos.y+(NY[n]-conv.pos.y)*s,conv.pos.z+(NZ[n]-conv.pos.z)*s)}).filter(p=>p.ok);
+    placePanel(pts.length>2?pts:[]);
+    const sg=.35+.6*Math.min(1,conv.t/6);elSigBar.style.width=(sg*100).toFixed(0)+'%';
+    return;
+  }
+  /* candidates */
+  let best=null,bestA=9,mi=0;
+  for(const ro of readouts){
+    const da=arcDiff(camArc,nArc[ro.n]);if(da<-30||da>170)continue;
+    const n=ro.n;const {d,ang}=angTo(NX[n],NY[n],NZ[n]);if(d>118||d<5)continue;
+    if(ang<bestA){bestA=ang;best={type:'node',ro,key:'n'+n}}
+    if(ang<.95&&mi<markers.length){const p=project(NX[n],NY[n],NZ[n]);if(p.ok){const o=Math.max(0,Math.min(1,(118-d)/55))*(1-ang/.95)*(lock&&lock.key==='n'+n?0:1);
+      markers[mi].style.transform=`translate(${p.x.toFixed(0)}px,${p.y.toFixed(0)}px)`;markers[mi].style.opacity=o.toFixed(2);mi++}}
+  }
+  for(;mi<markers.length;mi++)markers[mi].style.opacity=0;
+  if(animal.visible){animal.localToWorld(animalCenter.set(0,0,0));const {d,ang}=angTo(animalCenter.x,animalCenter.y,animalCenter.z);
+    if(d<140&&ang<bestA){bestA=ang;best={type:'animal',key:'animal',d}}}
+  const sig=Math.pow(Math.max(0,1-bestA/.6),2);
+  elSigBar.style.width=(sig*100).toFixed(0)+'%';
+  if(Math.random()<.25)elSigV.textContent='SIG −'+Math.round(92-sig*58+Math.random()*3)+' dB';
+  /* lock hysteresis */
+  if(lock){
+    let ang;if(lock.type==='node'){ang=angTo(NX[lock.ro.n],NY[lock.ro.n],NZ[lock.ro.n]).ang}else{ang=animal.visible?angTo(animalCenter.x,animalCenter.y,animalCenter.z).ang:9}
+    if(ang>LOCK_OUT){releaseT+=dt;if(releaseT>.55)release()}else releaseT=0;
+  }else if(best&&bestA<LOCK_IN){if(cand&&cand.key===best.key){candT+=dt;if(candT>.35)lockOn(best)}else{cand=best;candT=0}}
+  else{cand=null;candT=0}
+  if(lock){
+    lockT+=dt;
+    if(lock.type==='node'){
+      if(extraShown<lock.rec.extra.length&&lockT>2.6*(extraShown+1)){lock.rec.extra[extraShown].forEach(([k,v])=>panel.add(k,v));extraShown++}
+      const pts=lock.hood.map(n=>project(NX[n],NY[n],NZ[n])).filter(p=>p.ok);placePanel(pts.length>1?pts:[]);
+    }else if(animal.visible){
+      const dist=camPos.distanceTo(animalCenter);panel.set(lock.rangeRow,Math.round(dist)+' m');
+      if(extraShown===0&&lockT>2.6){panel.add('GAIT','quadruped, irregular');extraShown++}
+      if(extraShown===1&&lockT>5.2){panel.add('ACTIVITY','feeding');extraShown++}
+      const pts=animalPts.map(v=>project(v.x,v.y,v.z)).filter(p=>p.ok);placePanel(pts);
+    }
+  }else placePanel([]);
+}
+
+/* ================= convergence: everything routes to the wound ================= */
+const conv={active:false,t:0,pos:new THREE.Vector3(),hood:[],slot:7,site:null,cands:[],spawnAcc:0,script:[],si:0,rows:{}};
+let organAmt=0,nextConvAt=210,staticAmt=0,convFade=1,lostShown='';
+function bfsFrom(t){const d=new Int32Array(NN).fill(-1);const q=new Int32Array(NN);let h=0,tl=0;d[t]=0;q[tl++]=t;
+  while(h<tl){const c=q[h++];for(let i=adjStart[c];i<adjStart[c+1];i++){const m=adj[i];if(d[m]<0){d[m]=d[c]+1;q[tl++]=m}}}return d}
+function startConvergence(){
+  if(conv.active||reduced||!driftStarted)return false;
+  let target=-1,site=null;
+  if(animal.visible){animal.localToWorld(animalCenter.set(0,0,0));const {d,ang}=angTo(animalCenter.x,animalCenter.y,animalCenter.z);
+    if(d>20&&d<150&&ang<.75){site=activeSite;const s=site;const mid=siteAt(s,(s.trailStart+s.prog)/2,new THREE.Vector3());
+      let bd=1e18;for(const n of s.trunk){const dd=(NX[n]-mid.x)**2+(NY[n]-mid.y)**2+(NZ[n]-mid.z)**2;if(dd<bd){bd=dd;target=n}}}}
+  if(target<0){let bs=1e9;
+    forArcRange(camArc+50,camArc+140,n=>{if(NGen[n]>1)return;const {d,ang}=angTo(NX[n],NY[n],NZ[n]);if(d<50||d>130||ang>.5)return;const sc=ang-NRad[n]*.08;if(sc<bs){bs=sc;target=n}});}
+  if(target<0){let bs=1e9;forArcRange(camArc+40,camArc+150,n=>{if(NGen[n]>2)return;const {ang}=angTo(NX[n],NY[n],NZ[n]);if(ang<bs){bs=ang;target=n}});}
+  if(target<0)return false;
+  release();setPrompt('');
+  convTarget=target;bfs=bfsFrom(target);absorbed=0;
+  conv.cands=[];for(let n=0;n<NN;n++){const d=bfs[n];if(d>=10&&d<=70)conv.cands.push(n)}
+  conv.pos.set(NX[target],NY[target],NZ[target]);conv.hood=neighborhood(target,3,18);
+  conv.site=site;conv.slot=site?5+SITES.indexOf(site):7;
+  if(!site)Object.assign(WOUNDS[7],{x:NX[target],y:NY[target],z:NZ[target],r:9,amt:1});
+  conv.active=true;conv.t=0;conv.spawnAcc=0;conv.si=0;tSpeedMul=.35;
+  panel.clear();elChip.textContent='#'+nodeId(target);
+  const r=mulberry32(target*977);
+  const sub=site?'vertebrate, unclassified':'unknown';
+  const dmg=site?'grazing damage, '+ri(r,9,22)+' cm':'tissue loss, '+ri(r,5,14)+' cm';
+  conv.script=[[1.2,'NODE',nodeId(target)],[1.7,'DEPTH',depthOf(NY[target])],[2.4,'TRAFFIC','convergent'],[3.2,'INBOUND','0 spikes','inbound'],
+    [5,'NECROSIS',dmg],[6,'SUBJECT',sub],[7.4,'ACTION','consolidate'],
+    [21,'STATUS','resolved'],[22,'ACTION','none'],[26.4,'',''],[27,'CONTACT','foreign body, 2.1 cm, inert'],[27.9,'ORIGIN','unknown'],[28.8,'ACTION','encapsulate']];
+  elRead.classList.add('on');elChip.classList.add('on');elHull.style.opacity=1;elOverlay.classList.remove('locked');
+  return true;
+}
+function updateConvergence(dt){
+  const PM=postMat.uniforms;
+  if(!conv.active){organAmt=0;U.uOrgan.value.w=0;organ.visible=false;
+    if(driftStarted&&driftT>nextConvAt){if(!startConvergence())nextConvAt=driftT+10}
+    return}
+  const t=(conv.t+=dt);
+  if(t<19){conv.spawnAcc+=dt;while(conv.spawnAcc>.045){conv.spawnAcc-=.045;if(conv.cands.length)spawnPulse(conv.cands[Math.floor(Math.random()*conv.cands.length)],true)}}
+  while(conv.si<conv.script.length&&t>=conv.script[conv.si][0]){const s=conv.script[conv.si];const row=panel.add(s[1],s[2]);if(s[3])conv.rows[s[3]]=row;conv.si++}
+  if(conv.rows.inbound)panel.set(conv.rows.inbound,fmt(absorbed)+' spikes');
+  organAmt=t<3?0:t<11?smooth(3,11,t):t<19?1:1-smooth(19,26,t);
+  U.uOrgan.value.set(conv.pos.x,conv.pos.y,conv.pos.z,organAmt);
+  organ.visible=organAmt>.002;organ.position.copy(conv.pos);
+  const sc=organAmt*6.5*(1+.06*Math.sin(t*2.3));organ.scale.set(sc,sc*.78,sc*1.15);organ.rotation.y=t*.07;organ.rotation.x=t*.03;
+  if(t>19){const heal=1-smooth(19,26,t);if(conv.site)conv.site.trailAmt=heal;else WOUNDS[7].amt=heal}
+  if(t>31&&t<=33.6){staticAmt=smooth(31,32.6,t);convFade=1-smooth(32.6,33.6,t)}
+  if(t>33.6&&t<36.5){staticAmt=0;convFade=0;elRead.classList.remove('on');elChip.classList.remove('on');elHull.style.opacity=0;
+    const msg=t<35?'Signal lost':'Reacquiring';if(lostShown!==msg){$('#lostv').textContent=msg;lostShown=msg}$('#lost').classList.add('on')}
+  if(t>=36.5){ /* reset quietly */
+    $('#lost').classList.remove('on');lostShown='';
+    if(conv.site){conv.site.trailStart=conv.site.prog;conv.site.trailAmt=1}WOUNDS[7].amt=0;
+    pulses.length=0;pendingSpawn=[];conv.active=false;convTarget=-1;tSpeedMul=1;speedMul=1;panel.clear();
+    camArc=Math.random()*RL;nextConvAt=driftT+300;convFade=0;reacquireT=0;
+    $('#feedv').textContent='reacquired';setTimeout(()=>{$('#feedv').innerHTML='live &middot; unacknowledged'},6000);
+  }
+  PM.uStatic.value=staticAmt;
+}
+let reacquireT=99;
+
+/* ================= HUD text ================= */
+const elDepth=$('#tDepth'),elHdg=$('#tHdg'),elTime=$('#tTime');let hudAcc=0;
+function updateTele(dt){
+  hudAcc+=dt;if(hudAcc<.2)return;hudAcc=0;
+  elDepth.textContent=depthOf(camPos.y);
+  let h=Math.atan2(lookDir.x,-lookDir.z)*180/Math.PI;if(h<0)h+=360;elHdg.textContent=h.toFixed(1).padStart(5,'0')+'°';
+  const s=Math.floor(driftT);elTime.textContent=[s/3600|0,(s/60|0)%60,s%60].map(v=>String(v).padStart(2,'0')).join(':');
+  if(driftStarted&&!conv.active){
+    if(!everLocked){setPrompt(lookMoved<80?(coarse?'Awaiting operator input — drag to look':'Awaiting operator input — move to look'):'Hold the reticle on a marked junction')}
+    else setPrompt('');
+  }
+}
+
+/* ================= tuning panel ================= */
+const tune=$('#tune');
+const TF=[['tSpeed','oSpeed','speed',v=>v.toFixed(1)+' u/s'],['tFog','oFog','fog',v=>v.toFixed(4)],['tDither','oDither','dither',v=>v+' px'],['tGrain','oGrain','grain',v=>v.toFixed(3)],['tExp','oExp','exposure',v=>v.toFixed(2)]];
+function syncTune(){TF.forEach(([i,o,k,f])=>{$('#'+i).value=P[k];$('#'+o).textContent=f(P[k])});$('#tVals').value=JSON.stringify(P)}
+TF.forEach(([i,o,k,f])=>$('#'+i).addEventListener('input',e=>{P[k]=parseFloat(e.target.value);applyP();syncTune()}));
+function applyP(){U.uFog.value=P.fog;postMat.uniforms.uGrain.value=P.grain;postMat.uniforms.uExposure.value=P.exposure;resize()}
+function toggleTune(force){tune.hidden=force!==undefined?!force:!tune.hidden;if(!tune.hidden)syncTune()}
+$('#bConv').addEventListener('click',()=>startConvergence());
+$('#bCopy').addEventListener('click',()=>{const ta=$('#tVals');const txt=ta.value;
+  const fb=()=>{ta.focus();ta.select()};try{navigator.clipboard.writeText(txt).then(()=>{$('#bCopy').textContent='Copied'; setTimeout(()=>$('#bCopy').textContent='Copy values',1400)},fb)}catch(e){fb()}});
+$('#bTune').addEventListener('click',()=>{location.hash='feed';setTimeout(()=>toggleTune(true),700)});
+$('#bReplay').addEventListener('click',()=>{location.hash='feed';setTimeout(()=>startCold(),700)});
+window.addEventListener('keydown',e=>{
+  if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
+  if(e.key==='Escape'){if(coldRunning)endCold(true);else if(!tune.hidden)toggleTune(false)}
+  else if((e.key==='t'||e.key==='T')&&!pageOpen)toggleTune();
+  else if((e.key==='c'||e.key==='C')&&!pageOpen){if(coldRunning)endCold(true);startConvergence()}
+});
+
+/* ================= loop ================= */
+let T=0,driftT=0,last=performance.now(),sceneFade=0;
+onDrift=()=>{sceneFade=0};
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(document.hidden||pageOpen)return;
+  T+=dt;U.uTime.value=T;postMat.uniforms.uTime.value=reduced?0:T;
+  if(driftStarted)driftT+=dt;
+  updateCamera(driftStarted?dt:0,T);
+  updatePulses(dt,T);
+  updateAnimal(driftStarted?dt:0,T);
+  updateConvergence(dt);
+  if(!conv.active&&convFade<1){convFade=Math.min(1,convFade+dt/2)}
+  WOUNDS.forEach((w,i)=>{U.uW.value[i].set(w.x,w.y,w.z,w.r);U.uWA.value[i]=w.amt});
+  if(driftStarted)sceneFade=Math.min(1,sceneFade+dt/2.5);
+  postMat.uniforms.uFade.value=sceneFade*convFade;
+  renderer.setRenderTarget(rt);renderer.render(scene,camera);
+  renderer.setRenderTarget(null);renderer.render(postScene,postCam);
+  updateInstrument(dt);
+  updateTele(dt);
+}
+resize();
+syncTune();
+route();
+if(store.get('sotd-seen')==='1'){ $('#cold').hidden=true; $('#skip').hidden=true; endCold(true); }
+else startCold();
+requestAnimationFrame(frame);
+window.__sotd={startConvergence,endCold,get camArc(){return camArc},set camArc(v){camArc=v},P,stats:{nodes:NN,branches:branches.length,readouts:readouts.length}};
+})();
+</script>
+
+</body></html>

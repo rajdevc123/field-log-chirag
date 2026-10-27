@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-paper: #E6E1D7;
+  --fg-ink: #111111;
+  --fg-muted: #6E6D67;
+}
+
+html,
+body {
+  background-color: #E6E1D7;
+  color: #111111;
+  overflow-x: hidden;
+}
