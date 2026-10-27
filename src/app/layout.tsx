@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono, Cormorant_Garamond } from 'next/font/google';
 import './globals.css';
 import { siteConfig } from '@/content/siteConfig';
+import { UnderConstructionGate } from '@/components/UnderConstructionGate';
 
 const sans = Inter({
   subsets: ['latin'],
@@ -38,7 +39,7 @@ export default function RootLayout({
       className={`${sans.variable} ${mono.variable} ${serif.variable} scroll-smooth`}
     >
       <body className="bg-[#E6E1D7] text-[#111111] antialiased">
-        {children}
+        <UnderConstructionGate>{children}</UnderConstructionGate>
       </body>
     </html>
   );

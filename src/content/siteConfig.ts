@@ -5,6 +5,9 @@
  */
 
 export const siteConfig = {
+  // Set to false when you are ready to reveal the full portfolio to the public
+  underConstruction: true,
+
   // Brand & Monogram shown in the Swiss HUD footer & navigation
   monogram: 'Brdy',
   designerName: 'Chirag Rajdeo',
