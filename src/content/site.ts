@@ -9,6 +9,12 @@ export interface WorkContextMeta {
 }
 
 export const siteConfig = {
+  gate: {
+    enabled: true,
+    password: process.env.NEXT_PUBLIC_GATE_PASSWORD || 'chirag2026',
+    monogram: 'CR',
+    institution: 'National Institute of Design (NID)',
+  },
   metadata: {
     title: 'Chirag Rajdeo | Creative Technologist & New Media Designer',
     description:

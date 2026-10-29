@@ -19,6 +19,15 @@ const config: Config = {
       fontFamily: {
         display: ['HelveticaNowDisplay-Medium', 'sans-serif'],
         sans: ['HelveticaNowDisplay-Bold', 'sans-serif'],
+        mono: [
+          'var(--font-mono)',
+          'ui-monospace',
+          'SFMono-Regular',
+          'Menlo',
+          'Monaco',
+          'Consolas',
+          'monospace',
+        ],
       },
     },
   },
