@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono, Cormorant_Garamond } from 'next/font/google';
 import './globals.css';
-import { siteConfig } from '@/content/siteConfig';
-import { UnderConstructionGate } from '@/components/UnderConstructionGate';
 
 const sans = Inter({
   subsets: ['latin'],
@@ -24,8 +22,8 @@ const serif = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: `${siteConfig.designerName} — ${siteConfig.telemetry.sectorCode}`,
-  description: siteConfig.about.headline,
+  title: 'Chirag Rajdeo — Portfolio',
+  description: 'Portfolio of Chirag Rajdeo. Currently rebuilding.',
 };
 
 export default function RootLayout({
@@ -38,8 +36,8 @@ export default function RootLayout({
       lang="en"
       className={`${sans.variable} ${mono.variable} ${serif.variable} scroll-smooth`}
     >
-      <body className="bg-[#E6E1D7] text-[#111111] antialiased">
-        <UnderConstructionGate>{children}</UnderConstructionGate>
+      <body className="bg-[#f1efeb] text-[#252526] antialiased">
+        {children}
       </body>
     </html>
   );
