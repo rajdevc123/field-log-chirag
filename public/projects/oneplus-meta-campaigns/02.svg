@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <rect width="1600" height="900" fill="#252526"/>
+  <g stroke="#f1efeb" stroke-opacity="0.12" stroke-width="1">
+    <line x1="0" y1="180" x2="1600" y2="180"/>
+    <line x1="0" y1="450" x2="1600" y2="450"/>
+    <line x1="0" y1="720" x2="1600" y2="720"/>
+    <line x1="400" y1="0" x2="400" y2="900"/>
+    <line x1="800" y1="0" x2="800" y2="900"/>
+    <line x1="1200" y1="0" x2="1200" y2="900"/>
+  </g>
+  <rect x="80" y="80" width="380" height="64" fill="#066bbd"/>
+  <rect x="1040" y="620" width="440" height="140" fill="#066bbd" fill-opacity="0.85"/>
+  <text x="80" y="290" fill="#f1efeb" font-family="Helvetica, Arial, sans-serif" font-size="140" font-weight="700" letter-spacing="-4">04</text>
+  <text x="80" y="520" fill="#f1efeb" font-family="Helvetica, Arial, sans-serif" font-size="56" font-weight="700" letter-spacing="-1">ONEPLUS & META CAMPAIGNS</text>
+  <text x="80" y="580" fill="#f1efeb" fill-opacity="0.65" font-family="Helvetica, Arial, sans-serif" font-size="24" font-weight="700">FUTURE EAST FILM · 2022 — FRAME 03</text>
+</svg>

@@ -1,29 +1,15 @@
-import type { Metadata } from 'next';
-import { Inter, JetBrains_Mono, Cormorant_Garamond } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
-
-const sans = Inter({
-  subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
-});
-
-const mono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  display: 'swap',
-});
-
-const serif = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-serif',
-  display: 'swap',
-});
+import { siteConfig } from '@/content/site';
+import { StefanChrome } from '@/components/StefanChrome';
 
 export const metadata: Metadata = {
-  title: 'Chirag Rajdeo — Portfolio',
-  description: 'Portfolio of Chirag Rajdeo. Currently rebuilding.',
+  title: siteConfig.metadata.title,
+  description: siteConfig.metadata.description,
+};
+
+export const viewport: Viewport = {
+  themeColor: '#f1efeb',
 };
 
 export default function RootLayout({
@@ -32,12 +18,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${sans.variable} ${mono.variable} ${serif.variable} scroll-smooth`}
-    >
-      <body className="bg-[#f1efeb] text-[#252526] antialiased">
-        {children}
+    <html lang="en" className="loaded">
+      <head>
+        <link
+          rel="preload"
+          href="/fonts/HelveticaNowDisplay-Medium.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/HelveticaNowDisplay-Bold.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+      </head>
+      <body>
+        <StefanChrome>{children}</StefanChrome>
       </body>
     </html>
   );
