@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ProjectEntry } from '@/content/getProjects';
@@ -14,6 +14,17 @@ function isVideoSrc(src: string) {
   return /\.(mp4|webm|mov)$/i.test(src);
 }
 
+function isYouTubeSrc(src: string) {
+  return /youtube\.com|youtu\.be/i.test(src);
+}
+
+function getYouTubeEmbedUrl(url: string) {
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_\-]+)/
+  );
+  return match ? `https://www.youtube.com/embed/${match[1]}` : url;
+}
+
 function ListSection({
   title,
   items,
@@ -21,7 +32,7 @@ function ListSection({
   className = '',
 }: {
   title?: string;
-  items: (string | { label: string; url: string })[];
+  items: (string | { label: string; url: string; internal?: boolean })[];
   delay?: number;
   className?: string;
 }) {
@@ -45,6 +56,18 @@ function ListSection({
                   {item}
                 </RevealMask>
               </BodyCopyMedium>
+            ) : item.internal ? (
+              <Link className="List_link" href={item.url} scroll={false}>
+                <BodyCopyMedium>
+                  <RevealMask
+                    show={true}
+                    delay={delay + 0.1}
+                    className="List_label"
+                  >
+                    {item.label}
+                  </RevealMask>
+                </BodyCopyMedium>
+              </Link>
             ) : (
               <a
                 className="List_link"
@@ -70,7 +93,7 @@ function ListSection({
   );
 }
 
-function MediaStack({
+function MobileMediaStack({
   media,
   colors = [],
   className = '',
@@ -101,7 +124,20 @@ function MediaStack({
                 backgroundColor: colors[i] || 'var(--color-default)',
               }}
             >
-              {isVideoSrc(src) ? (
+              {isYouTubeSrc(src) ? (
+                <iframe
+                  src={getYouTubeEmbedUrl(src)}
+                  title={`Video ${indexStr}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 0,
+                    display: 'block',
+                  }}
+                />
+              ) : isVideoSrc(src) ? (
                 <video src={src} autoPlay muted loop playsInline controls />
               ) : (
                 <img src={src} alt="" />
@@ -116,12 +152,20 @@ function MediaStack({
 
 export function CaseStudy({
   project,
-  mdxContent,
 }: {
   project: ProjectEntry;
   mdxContent?: React.ReactNode;
 }) {
   const router = useRouter();
+  const [showNextCta, setShowNextCta] = useState(false);
+
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const frameRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const targetYRef = useRef(0);
+  const currentYRef = useRef(0);
+  const maxScrollRef = useRef(0);
+  const overscrollUpRef = useRef(0);
+  const navigatedRef = useRef(false);
 
   // Escape key returns to /work (matches Stefan's project-id.js)
   useEffect(() => {
@@ -134,22 +178,112 @@ export function CaseStudy({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [router]);
 
+  // Smooth lerp scroll for the right-hand media stack (matches Stefan's chunk-892.js)
+  useEffect(() => {
+    targetYRef.current = 0;
+    currentYRef.current = 0;
+    overscrollUpRef.current = 0;
+    navigatedRef.current = false;
+
+    const measure = () => {
+      const trackEl = trackRef.current;
+      if (!trackEl) return;
+      const totalH = trackEl.scrollHeight;
+      maxScrollRef.current = Math.max(0, totalH - window.innerHeight * 0.85);
+      targetYRef.current = Math.max(
+        0,
+        Math.min(maxScrollRef.current, targetYRef.current)
+      );
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (trackRef.current) ro.observe(trackRef.current);
+    window.addEventListener('resize', measure);
+
+    let rafId = 0;
+    const tick = () => {
+      const diff = targetYRef.current - currentYRef.current;
+      currentYRef.current += diff * 0.095;
+      const velocity = diff * 0.095;
+
+      if (trackRef.current) {
+        trackRef.current.style.transform = `translate3d(0, ${-currentYRef.current}px, 0)`;
+      }
+
+      // Subtle parallax distortion on frames while scrolling
+      for (let i = 0; i < frameRefs.current.length; i++) {
+        const frame = frameRefs.current[i];
+        if (!frame) continue;
+        const skew = Math.max(-2.5, Math.min(2.5, velocity * 0.04));
+        frame.style.transform = `skewY(${skew}deg)`;
+      }
+
+      const progress =
+        maxScrollRef.current > 0
+          ? currentYRef.current / maxScrollRef.current
+          : 1;
+      setShowNextCta(progress > 0.65 || maxScrollRef.current <= 10);
+
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+
+    const onWheel = (e: WheelEvent) => {
+      const isDesktop = window.matchMedia('(min-width: 900px)').matches;
+      if (!isDesktop) return;
+
+      measure();
+      const maxS = maxScrollRef.current;
+      const atTop = targetYRef.current <= 2;
+
+      // Scroll up at top returns to /work (matches Stefan's chunk-764.js)
+      if (e.deltaY < 0 && atTop) {
+        overscrollUpRef.current += Math.abs(e.deltaY);
+        if (overscrollUpRef.current > 160 && !navigatedRef.current) {
+          navigatedRef.current = true;
+          router.push('/work');
+        }
+        return;
+      }
+
+      overscrollUpRef.current = 0;
+      targetYRef.current = Math.max(
+        0,
+        Math.min(maxS, targetYRef.current + e.deltaY * 0.95)
+      );
+    };
+
+    window.addEventListener('wheel', onWheel, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('wheel', onWheel);
+    };
+  }, [project.slug, router]);
+
   const contextMeta = siteConfig.contexts.find((c) => c.id === project.context);
   const contextLine = contextMeta
-    ? `${contextMeta.fullName} · ${project.year}`
+    ? `${contextMeta.fullName} (${project.year})`
     : String(project.year);
 
+  // Matches Stefan's "Role" section: role line + tools/mediums line
   const roleItems = [
     project.role,
-    ...(project.collaborators && project.collaborators.length > 0
-      ? [`Collaborators: ${project.collaborators.join(', ')}`]
+    ...(project.tools && project.tools.length > 0
+      ? [project.tools.join(' / ')]
       : []),
   ];
 
-  const toolsItems =
-    project.tools && project.tools.length > 0
-      ? [project.tools.join(' · ')]
-      : [];
+  // Matches Stefan's "Awards & Recognitions" section: context + collaborators
+  const contextItems = [
+    contextLine,
+    ...(project.collaborators && project.collaborators.length > 0
+      ? project.collaborators
+      : []),
+  ];
 
   const mediaList =
     project.media && project.media.length > 0
@@ -162,96 +296,54 @@ export function CaseStudy({
 
       <PageTitle
         title={project.titleParts || [project.title]}
-        titleOffset={project.titleOffset || ['45%', '50%']}
+        titleOffset={project.titleOffset || ['35%', '42%']}
         show={true}
       />
 
-      {/* Mobile/Tablet MediaGrid */}
-      <MediaStack
+      {/* Mobile/Tablet MediaGrid (< 900px) */}
+      <MobileMediaStack
         media={mediaList}
         colors={project.colors}
         className="MediaGrid_mobileOnly"
       />
 
-      {/* Desktop Two-Column Split: Left metadata + MDX, Right media stack */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(12, 1fr)',
-          gap: 'var(--indent)',
-          alignItems: 'start',
-        }}
-      >
-        <div
-          className="Project_content"
-          style={{
-            gridColumn: '1 / -1',
-          }}
-        >
+      {/* Left Column Content (exact Stefan Project_content layout) */}
+      <div className="Project_content">
+        <ListSection
+          title="Role"
+          items={roleItems}
+          delay={0.1}
+          className="Project_role"
+        />
+
+        <ListSection
+          title="Context & Scope"
+          items={contextItems}
+          delay={0.2}
+          className="Project_recognitions"
+        />
+
+        {project.summary && project.summary.length > 0 && (
           <ListSection
-            title="Context"
-            items={[contextLine, `#${project.displayNumber}`]}
-            delay={0.05}
+            title="Summary"
+            items={project.summary}
+            delay={0.3}
+            className="Project_summary"
           />
+        )}
 
-          <ListSection
-            title="Role"
-            items={roleItems}
-            delay={0.12}
-          />
-
-          {toolsItems.length > 0 && (
-            <ListSection
-              title="Tools & Mediums"
-              items={toolsItems}
-              delay={0.2}
-            />
-          )}
-
-          {project.summary && project.summary.length > 0 && (
-            <ListSection
-              title="Summary"
-              items={project.summary}
-              delay={0.28}
-            />
-          )}
-
-          {project.externalUrl && (
-            <ListSection
-              items={[
-                { label: 'Visit live project', url: project.externalUrl },
-              ]}
-              delay={0.45}
-            />
-          )}
-
-          {/* MDX Case Study Body */}
-          {mdxContent && (
-            <div
-              className="List_listWrapper"
-              style={{ marginTop: 'max(2.5rem, 2.5vw)' }}
-            >
-              <BodyCopyLarge className="List_listTitle">
-                <RevealMask show={true} delay={0.35}>
-                  Case Notes & Process
-                </RevealMask>
-              </BodyCopyLarge>
-              <div
-                className="Text_bodyCopyMedium"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '1rem',
-                }}
-              >
-                {mdxContent}
-              </div>
-            </div>
-          )}
-        </div>
+        <ListSection
+          items={
+            project.externalUrl
+              ? [{ label: 'Visit website', url: project.externalUrl }]
+              : [{ label: 'Back to projects', url: '/work', internal: true }]
+          }
+          delay={0.55}
+          className="Project_link"
+        />
       </div>
 
-      {/* Desktop Right-Column Scrollable Media Stack (>= 900px) */}
+      {/* Desktop Right-Column Media Stack (exact Stefan columns 7-12, pure 16:9 frames) */}
       <div
         className="hidden min-[900px]:block"
         style={{
@@ -260,17 +352,67 @@ export function CaseStudy({
           left: 'calc(var(--col) * 6 + var(--indent) * 5)',
           width: 'calc(var(--col) * 5 + var(--indent) * 6)',
           height: '100vh',
-          overflowY: 'auto',
-          paddingTop: 'var(--indent)',
-          paddingBottom: 'calc(var(--indent) * 6)',
+          overflow: 'hidden',
           zIndex: 15,
         }}
       >
-        <MediaStack media={mediaList} colors={project.colors} />
+        <div
+          ref={trackRef}
+          style={{
+            paddingTop: 'var(--indent)',
+            paddingBottom: 'calc(var(--indent) * 8)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'calc(var(--indent) * 2)',
+            willChange: 'transform',
+          }}
+        >
+          {mediaList.map((src, i) => (
+            <div
+              key={i}
+              ref={(el) => {
+                frameRefs.current[i] = el;
+              }}
+              className="MediaGrid_mediaContent"
+              style={{
+                backgroundColor:
+                  project.colors?.[i % (project.colors?.length || 1)] ||
+                  '#252526',
+                willChange: 'transform',
+              }}
+            >
+              {isYouTubeSrc(src) ? (
+                <iframe
+                  src={getYouTubeEmbedUrl(src)}
+                  title={`${project.title} video ${i + 1}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    border: 0,
+                    display: 'block',
+                    zIndex: 2,
+                  }}
+                />
+              ) : isVideoSrc(src) ? (
+                <video src={src} autoPlay muted loop playsInline />
+              ) : (
+                <img src={src} alt={project.title} />
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Next Project Footer (exact Stefan Project_footer) */}
-      <footer className="Project_footer Project_show">
+      <footer
+        className={`Project_footer ${
+          showNextCta ? 'Project_show' : 'Project_hide'
+        }`}
+      >
         <div className="Project_footerLinkWrapper">
           <Link
             className="Project_nextLink"
@@ -279,7 +421,7 @@ export function CaseStudy({
             aria-label={`Next Project: ${project.nextTitle}`}
           />
           <Title className="Project_nextLinkLabel">
-            <RevealMask show={true} delay={0.4}>
+            <RevealMask show={showNextCta} delay={0.1}>
               Next Project
             </RevealMask>
           </Title>

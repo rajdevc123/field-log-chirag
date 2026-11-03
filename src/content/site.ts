@@ -1,4 +1,4 @@
-export type WorkContextId = 'nid' | 'future-east' | 'dr-reddys';
+export type WorkContextId = 'future-east' | 'dr-reddys';
 
 export interface WorkContextMeta {
   id: WorkContextId;
@@ -10,36 +10,37 @@ export interface WorkContextMeta {
 
 export const siteConfig = {
   gate: {
-    enabled: true,
+    enabled: false,
     password: process.env.NEXT_PUBLIC_GATE_PASSWORD || 'chirag2026',
     monogram: 'CR',
     institution: 'National Institute of Design (NID)',
   },
   metadata: {
-    title: 'Chirag Rajdeo | Creative Technologist & New Media Designer',
+    title: 'Chirag Rajdeo | New Media Design',
     description:
-      'Creative technologist and New Media Designer at NID Gandhinagar. Focusing on interactive installations, physical computing, and digital experiences.',
+      'Multidisciplinary designer interested in human-computer interaction, emerging technologies and human behaviour. Exploring how interactive systems can shape experiences across physical and digital environments. Currently pursuing New Media Design at NID Gandhinagar.',
     url: 'https://field-log-chirag.vercel.app',
   },
   identity: {
     name: 'Chirag Rajdeo',
-    role: 'New Media Designer',
+    role: 'Multidisciplinary Designer',
     location: 'Gandhinagar, India',
-    extraNav: ['Chirag Rajdeo', 'New Media Designer', 'NID, India'],
+    extraNav: ['Chirag Rajdeo', 'Multidisciplinary Designer', 'NID, India'],
   },
   home: {
     // Matches Stefan's HomeHero two-part SlicedText title separated by <Sep />
     title: ['Chirag Rajdeo', 'New Media Design'],
     // Line-by-line Reveal description matching Stefan's HomeHero_descriptionLabel
     description: [
-      'New Media Design — NID · previously',
-      "Dr. Reddy's & Future East Film.",
-      'Exploring physical computing, interactive',
-      'installations, and computational media.',
-      'Bridging tangible hardware, real-time',
-      'graphics, and research-led making.',
-      'M.Des candidate at National Institute',
-      'of Design, Gandhinagar.',
+      'Multidisciplinary designer',
+      'interested in human-computer',
+      'interaction, emerging technologies',
+      'and human behaviour. Exploring how',
+      'interactive systems can shape',
+      'experiences across physical and',
+      'digital environments. Currently',
+      'pursuing New Media Design at',
+      'NID Gandhinagar.',
     ],
   },
   availability: {
@@ -63,30 +64,50 @@ export const siteConfig = {
   year: '2026.',
   contexts: [
     {
-      id: 'nid' as WorkContextId,
-      label: 'NID',
-      fullName: 'National Institute of Design',
-      years: '2024 – ',
-      role: 'M.Des — New Media Design',
-    },
-    {
-      id: 'future-east' as WorkContextId,
-      label: 'Future East Film',
-      fullName: 'Future East Film',
-      years: '2021 – 2022',
-      role: 'Creative Producer',
-    },
-    {
       id: 'dr-reddys' as WorkContextId,
       label: "Dr. Reddy's Labs",
       fullName: "Dr. Reddy's Laboratories",
       years: '2022 – 2025',
       role: 'Digital Studio Manager',
     },
+    {
+      id: 'future-east' as WorkContextId,
+      label: 'Future East Film',
+      fullName: 'Future East Film',
+      years: '2020 – 2022',
+      role: 'Creative Producer',
+    },
   ] satisfies WorkContextMeta[],
   about: {
     // Matches Stefan's ["Stfn", "Vtsvc"] giant character-animated AboutHero
     heroLabels: ['Chrg', 'Rjdo'],
+    associativeWords: [
+      'BODIES',
+      'MACHINES',
+      'NATURE',
+      'MATTER',
+      'CODE',
+      'SYSTEMS',
+      'STORIES',
+      'PERCEPTION',
+      'COMPUTATION',
+      'INTELLIGENCE',
+      'INTUITION',
+      'AMBIGUITY',
+      'PRECISION',
+      'POTENTIAL',
+      'REALITY',
+      'FUTURE',
+    ],
+    associativeConfig: {
+      cycleIntervalMs: 4200,
+      inactivityResumeMs: 5000,
+      transitionDurationMs: 760,
+      pixelationTargetScale: 0.21, // Subtle refined pixelation (smaller, tighter square steps that preserve letterforms)
+      pixelTransitionMs: 280,
+      pixelJitterSpeed: 1.4, // Slow, understated pixel-grid recalculation while hovered
+      pixelJitterAmplitude: 0.22, // Subtle sub-pixel sampling offset in low-res grid units
+    },
     yearBadge: '26',
     paragraphs: [
       'Chirag Rajdeo is a Creative Technologist and New Media Designer working across physical computing, interactive installations, motion systems, and digital product experiences. Currently pursuing his Master of Design in New Media Design at the National Institute of Design (NID), Gandhinagar.',

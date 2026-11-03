@@ -148,7 +148,13 @@ function ArtItem({
   );
 }
 
-function HomeArt({ show }: { show: boolean }) {
+function HomeArt({
+  show,
+  wheelBoostRef,
+}: {
+  show: boolean;
+  wheelBoostRef: React.MutableRefObject<number>;
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const itemsRefs = useRef<(HTMLDivElement | null)[]>([]);
   const scrollData = useRef<Record<number, ScrollDatum>>({});
@@ -163,6 +169,12 @@ function HomeArt({ show }: { show: boolean }) {
       const delta = Math.min(now - lastTime, 50);
       lastTime = now;
 
+      // Decay wheel parallax boost smoothly
+      wheelBoostRef.current *= 0.92;
+      if (Math.abs(wheelBoostRef.current) < 0.01) {
+        wheelBoostRef.current = 0;
+      }
+
       const totalHeight = Math.max(
         containerRef.current?.scrollHeight || window.innerHeight,
         500
@@ -174,9 +186,11 @@ function HomeArt({ show }: { show: boolean }) {
         const el = els[i];
         const d = data[i];
         if (el && d) {
-          d.y -= d.speed * delta * 0.1;
+          d.y -= (d.speed * delta * 0.1) + wheelBoostRef.current * d.speed * 1.8;
           if (d.offset + d.y + d.height < 0) {
             d.y += totalHeight;
+          } else if (d.offset + d.y > totalHeight) {
+            d.y -= totalHeight;
           }
           el.style.transform = `translate3d(0, ${d.y}px, 0)`;
           if (i >= ART_CONFIG.default.length && i % 4 === 0) {
@@ -191,7 +205,7 @@ function HomeArt({ show }: { show: boolean }) {
 
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [prefersReducedMotion]);
+  }, [prefersReducedMotion, wheelBoostRef]);
 
   return (
     <div className="Art_art" ref={containerRef} aria-hidden="true">
@@ -226,13 +240,24 @@ export function HomeHero() {
   const router = useRouter();
   const { title, description } = siteConfig.home;
   const navigatedRef = useRef(false);
+  const wheelBoostRef = useRef(0);
+  const accumWheelRef = useRef(0);
 
-  // Stefan's wheel-down controller on Home that navigates to Projects (/work)
+  // Parallax wheel response on Home that smoothly transitions to Projects (/work)
   useEffect(() => {
+    navigatedRef.current = false;
+    accumWheelRef.current = 0;
+
     const onWheel = (e: WheelEvent) => {
-      if (e.deltaY > 28 && !navigatedRef.current) {
-        navigatedRef.current = true;
-        router.push('/work');
+      wheelBoostRef.current += e.deltaY * 0.12;
+      if (e.deltaY > 0) {
+        accumWheelRef.current += e.deltaY;
+        if (accumWheelRef.current > 120 && !navigatedRef.current) {
+          navigatedRef.current = true;
+          router.push('/work');
+        }
+      } else {
+        accumWheelRef.current = Math.max(0, accumWheelRef.current + e.deltaY);
       }
     };
     window.addEventListener('wheel', onWheel, { passive: true });
@@ -241,7 +266,7 @@ export function HomeHero() {
 
   return (
     <div className="Home_home" id="home">
-      <HomeArt show={true} />
+      <HomeArt show={true} wheelBoostRef={wheelBoostRef} />
 
       {/* Reserved ambient slot for Phase C Airavata layered puppet */}
       <div

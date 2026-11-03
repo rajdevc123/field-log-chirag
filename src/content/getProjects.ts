@@ -58,7 +58,7 @@ export function getAllProjects(): ProjectEntry[] {
       title: data.title ?? slug,
       titleParts: data.titleParts ?? splitTitleIntoTwo(data.title ?? slug),
       titleOffset: data.titleOffset ?? ['42%', '48%'],
-      context: (data.context ?? 'nid') as WorkContextId,
+      context: (data.context ?? 'dr-reddys') as WorkContextId,
       year: data.year ?? 2025,
       role: data.role ?? 'Designer / Developer',
       collaborators: Array.isArray(data.collaborators) ? data.collaborators : [],

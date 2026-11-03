@@ -62,7 +62,33 @@ export function PlaygroundOverlay({ item, onClose }: PlaygroundOverlayProps) {
               border: '1px solid rgba(241, 239, 235, 0.15)',
             }}
           >
-            {item.embed ? (
+            {item.embed && /\.(mp4|webm|mov)$/i.test(item.embed) ? (
+              <video
+                src={item.embed}
+                autoPlay
+                loop
+                muted
+                playsInline
+                controls
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
+              />
+            ) : item.embed && /\.(png|jpg|jpeg|webp|svg)$/i.test(item.embed) ? (
+              <img
+                src={item.embed}
+                alt={item.title}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
+              />
+            ) : item.embed ? (
               <iframe
                 src={item.embed}
                 title={item.title}

@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import type { ProjectContextGroup, ProjectEntry } from '@/content/getProjects';
 import { easeOutExpo } from './easings';
 import { BodyCopyLarge, BodyCopyMedium, BodyCopySmall, Title } from './Text';
@@ -22,16 +22,160 @@ function isVideoSrc(src: string) {
 
 export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
   const router = useRouter();
+
+  // Ordered projects matching the context groups (Dr. Reddy's Labs -> Future East Film)
+  const orderedProjects = React.useMemo(() => {
+    const flat: ProjectEntry[] = [];
+    for (const g of groups) {
+      for (const p of g.projects) {
+        flat.push(p);
+      }
+    }
+    return flat.length > 0 ? flat : allProjects;
+  }, [groups, allProjects]);
+
   const [hoveredSlug, setHoveredSlug] = useState<string>(
-    allProjects[0]?.slug || ''
+    orderedProjects[0]?.slug || ''
   );
   const [hasHoveredLink, setHasHoveredLink] = useState(false);
 
   const activeProject =
-    allProjects.find((p) => p.slug === hoveredSlug) || allProjects[0];
+    orderedProjects.find((p) => p.slug === hoveredSlug) || orderedProjects[0];
 
-  const totalCount = String(allProjects.length).padStart(2, '0');
-  const currentNum = activeProject ? activeProject.displayNumber : '01';
+  const activeIndex = Math.max(
+    0,
+    orderedProjects.findIndex((p) => p.slug === activeProject?.slug)
+  );
+  const totalCount = String(orderedProjects.length).padStart(2, '0');
+  const currentNum = String(activeIndex + 1).padStart(2, '0');
+
+  // Refs for smooth lerp parallax scrolling of the right-hand project stack
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const mediaRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const targetYRef = useRef(0);
+  const currentYRef = useRef(0);
+  const maxScrollRef = useRef(0);
+  const isManualHoverRef = useRef(false);
+  const manualHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const overscrollUpRef = useRef(0);
+  const overscrollDownRef = useRef(0);
+  const navigatedRef = useRef(false);
+
+  const scrollToProjectIndex = (idx: number) => {
+    const itemEl = itemRefs.current[idx];
+    const trackEl = trackRef.current;
+    if (!itemEl || !trackEl) return;
+    const offset = itemEl.offsetTop - window.innerHeight * 0.16;
+    targetYRef.current = Math.max(
+      0,
+      Math.min(maxScrollRef.current, offset)
+    );
+  };
+
+  // Measure right-column track & run 60fps lerp + parallax loop
+  useEffect(() => {
+    navigatedRef.current = false;
+    overscrollUpRef.current = 0;
+    overscrollDownRef.current = 0;
+
+    const measure = () => {
+      const trackEl = trackRef.current;
+      if (!trackEl) return;
+      const totalH = trackEl.scrollHeight;
+      maxScrollRef.current = Math.max(0, totalH - window.innerHeight * 0.72);
+      targetYRef.current = Math.max(
+        0,
+        Math.min(maxScrollRef.current, targetYRef.current)
+      );
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (trackRef.current) ro.observe(trackRef.current);
+    window.addEventListener('resize', measure);
+
+    let rafId = 0;
+    const tick = () => {
+      const diff = targetYRef.current - currentYRef.current;
+      currentYRef.current += diff * 0.09;
+      const velocity = diff * 0.09;
+
+      if (trackRef.current) {
+        trackRef.current.style.transform = `translate3d(0, ${-currentYRef.current}px, 0)`;
+      }
+
+      // Apply subtle parallax shift & velocity skew to each project's media card
+      const viewportCenter = window.innerHeight * 0.45;
+      let closestIdx = 0;
+      let closestDist = Infinity;
+
+      for (let i = 0; i < itemRefs.current.length; i++) {
+        const el = itemRefs.current[i];
+        const mediaEl = mediaRefs.current[i];
+        if (!el) continue;
+
+        const itemTopInView = el.offsetTop - currentYRef.current;
+        const itemCenterInView = itemTopInView + el.offsetHeight * 0.5;
+        const distFromCenter = itemCenterInView - viewportCenter;
+
+        if (Math.abs(distFromCenter) < closestDist) {
+          closestDist = Math.abs(distFromCenter);
+          closestIdx = i;
+        }
+
+        if (mediaEl) {
+          const parallaxY = distFromCenter * -0.08;
+          const clampVel = Math.max(-6, Math.min(6, velocity * 0.08));
+          mediaEl.style.transform = `translate3d(0, ${parallaxY}px, 0) skewY(${clampVel * 0.18}deg)`;
+        }
+      }
+
+      if (!isManualHoverRef.current && orderedProjects[closestIdx]) {
+        const nextSlug = orderedProjects[closestIdx].slug;
+        setHoveredSlug((prev) => (prev !== nextSlug ? nextSlug : prev));
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+
+    const onWheel = (e: WheelEvent) => {
+      const isDesktop = window.matchMedia('(min-width: 900px)').matches;
+      if (!isDesktop) return;
+
+      measure();
+      const maxS = maxScrollRef.current;
+      const atTop = targetYRef.current <= 2;
+
+      if (e.deltaY < 0 && atTop) {
+        overscrollUpRef.current += Math.abs(e.deltaY);
+        if (overscrollUpRef.current > 150 && !navigatedRef.current) {
+          navigatedRef.current = true;
+          router.push('/');
+        }
+        return;
+      }
+
+      overscrollUpRef.current = 0;
+      isManualHoverRef.current = false;
+
+      targetYRef.current = Math.max(
+        0,
+        Math.min(maxS, targetYRef.current + e.deltaY * 0.95)
+      );
+    };
+
+    window.addEventListener('wheel', onWheel, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('wheel', onWheel);
+    };
+  }, [orderedProjects, router]);
 
   // Stefan's keyboard navigation on /projects (Escape -> /, Enter -> active project, Up/Down -> cycle)
   useEffect(() => {
@@ -44,22 +188,23 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
         router.push(`/work/${activeProject.slug}`);
       } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
-        const idx = allProjects.findIndex((p) => p.slug === hoveredSlug);
+        const idx = orderedProjects.findIndex((p) => p.slug === hoveredSlug);
         if (idx !== -1) {
           const nextIdx =
             e.key === 'ArrowDown'
-              ? (idx + 1) % allProjects.length
-              : (idx - 1 + allProjects.length) % allProjects.length;
-          setHoveredSlug(allProjects[nextIdx].slug);
+              ? Math.min(orderedProjects.length - 1, idx + 1)
+              : Math.max(0, idx - 1);
+          setHoveredSlug(orderedProjects[nextIdx].slug);
+          scrollToProjectIndex(nextIdx);
         }
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [activeProject, allProjects, hoveredSlug, router]);
+  }, [activeProject, orderedProjects, hoveredSlug, router]);
 
   // Mobile/Tablet top preview videos/thumbs (Stefan's VideosGrid)
-  const mobilePreviews = allProjects.slice(0, 6).map((p) => p.thumbnail);
+  const mobilePreviews = orderedProjects.slice(0, 6).map((p) => p.thumbnail);
 
   let globalRowIndex = 0;
 
@@ -123,10 +268,14 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
         </div>
       </div>
 
-      {/* Page Title */}
-      <PageTitle title={['Select works']} titleOffset={['50%']} show={true} />
+      {/* Page Title: always "Select projects" on /work */}
+      <PageTitle
+        title={['Select projects']}
+        titleOffset={['50%']}
+        show={true}
+      />
 
-      {/* Top-Right Progress Counter: e.g. 07 / 07 */}
+      {/* Top-Right Progress Counter: e.g. 01 / 06 */}
       <div className="ProjectsList_progressWrapper">
         <div className="ProjectsList_current">
           <RevealMask show={true}>
@@ -149,7 +298,7 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
         </div>
       </div>
 
-      {/* Left + Middle Column: Context-Grouped Project Rows */}
+      {/* Context-Grouped Work List (Sticky on Left: Dr. Reddy's Labs & Future East Film) */}
       <section
         className={`ProjectsList_projectsListWrapper ${
           hasHoveredLink ? 'ProjectsList_hasHoveredLink' : ''
@@ -176,25 +325,26 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
               {group.projects.map((project) => {
                 const rowIdx = globalRowIndex++;
                 const isFocused = activeProject?.slug === project.slug;
+                const numLabel = String(rowIdx + 1).padStart(2, '0');
 
                 return (
                   <li
                     key={project.slug}
                     className="ProjectsList_projectItem"
                     onMouseEnter={() => {
+                      isManualHoverRef.current = true;
+                      if (manualHoverTimeoutRef.current) {
+                        clearTimeout(manualHoverTimeoutRef.current);
+                      }
                       setHoveredSlug(project.slug);
                       setHasHoveredLink(true);
-                    }}
-                    onMouseMove={() => {
-                      if (hoveredSlug !== project.slug) {
-                        setHoveredSlug(project.slug);
-                      }
-                      if (!hasHoveredLink) {
-                        setHasHoveredLink(true);
-                      }
+                      scrollToProjectIndex(rowIdx);
                     }}
                     onMouseLeave={() => {
                       setHasHoveredLink(false);
+                      manualHoverTimeoutRef.current = setTimeout(() => {
+                        isManualHoverRef.current = false;
+                      }, 600);
                     }}
                   >
                     <RevealMask show={true} delay={0.03 * rowIdx}>
@@ -206,7 +356,7 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
                             isFocused ? 'ProjectsList_hovered' : ''
                           }`.trim()}
                         >
-                          {project.displayNumber}. {project.title}
+                          {numLabel}. {project.title}
                         </Link>
                       </BodyCopyLarge>
                     </RevealMask>
@@ -218,58 +368,87 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
         ))}
       </section>
 
-      {/* Right Column (Desktop >= 900px): Hover-Preview Stage */}
-      {activeProject && (
-        <div className="WorkPreview_stage">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeProject.slug}
-              initial={{ opacity: 0, y: 60 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -30 }}
-              transition={{ duration: 0.75, ease: easeOutExpo }}
-              style={{
-                paddingTop: 'calc(15vh + 0.75vw)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'calc(var(--indent) * 1.5)',
-              }}
-            >
-              {(activeProject.media && activeProject.media.length > 0
-                ? activeProject.media.slice(0, 2)
-                : [activeProject.thumbnail]
-              ).map((mediaSrc, idx) => (
-                <Link
-                  key={`${activeProject.slug}-${idx}`}
-                  href={`/work/${activeProject.slug}`}
-                  scroll={false}
-                  style={{ display: 'block', textDecoration: 'none' }}
+      {/* Right Column (Desktop >= 900px): Sticky-Scroll Parallax Stage of All 6 Projects */}
+      <div
+        className="WorkPreview_stage"
+        style={{ overflow: 'hidden' }}
+      >
+        <div
+          ref={trackRef}
+          style={{
+            paddingTop: 'calc(15vh + 0.75vw)',
+            paddingBottom: '35vh',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'calc(var(--indent) * 4)',
+            willChange: 'transform',
+          }}
+        >
+          {orderedProjects.map((project, idx) => {
+            const isActive = activeProject?.slug === project.slug;
+            const firstVideo = project.media?.find((m) => isVideoSrc(m));
+            const previewItems = firstVideo
+              ? [project.heroMedia || project.thumbnail, firstVideo]
+              : (project.media && project.media.length > 0
+                  ? project.media.slice(0, 2)
+                  : [project.thumbnail]);
+
+            return (
+              <div
+                key={project.slug}
+                ref={(el) => {
+                  itemRefs.current[idx] = el;
+                }}
+                style={{
+                  opacity: isActive ? 1 : 0.42,
+                  transition: 'opacity 0.4s ease',
+                }}
+              >
+                <div
+                  ref={(el) => {
+                    mediaRefs.current[idx] = el;
+                  }}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 'calc(var(--indent) * 1.5)',
+                    willChange: 'transform',
+                  }}
                 >
-                  <div
-                    className="MediaGrid_mediaContent"
-                    style={{
-                      backgroundColor:
-                        activeProject.colors?.[idx] || 'var(--color-default)',
-                    }}
-                  >
-                    {isVideoSrc(mediaSrc) ? (
-                      <video
-                        src={mediaSrc}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                      />
-                    ) : (
-                      <img src={mediaSrc} alt={activeProject.title} />
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </motion.div>
-          </AnimatePresence>
+                  {previewItems.map((mediaSrc, mIdx) => (
+                    <Link
+                      key={`${project.slug}-${mIdx}`}
+                      href={`/work/${project.slug}`}
+                      scroll={false}
+                      style={{ display: 'block', textDecoration: 'none' }}
+                    >
+                      <div
+                        className="MediaGrid_mediaContent"
+                        style={{
+                          backgroundColor:
+                            project.colors?.[mIdx] || 'var(--color-default)',
+                        }}
+                      >
+                        {isVideoSrc(mediaSrc) ? (
+                          <video
+                            src={mediaSrc}
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                          />
+                        ) : (
+                          <img src={mediaSrc} alt={project.title} />
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
-      )}
+      </div>
 
       {/* Mobile Footer */}
       <div

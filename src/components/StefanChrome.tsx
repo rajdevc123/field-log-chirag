@@ -3,6 +3,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, useMotionValue } from 'framer-motion';
+import * as THREE from 'three';
+import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
 import { easeOutExpo } from './easings';
 import { BodyCopyMedium, BodyCopySmall } from './Text';
 import { SiteNav } from './SiteNav';
@@ -181,65 +183,110 @@ function BackgroundCanvas() {
       }
     }
 
-    // 2. Stefan's #066bbd Cursor Trail (matches module 405 <Trail color="#066bbd" />)
+    // 2. Stefan's exact #066bbd Cursor Trail (<Trail color="#066bbd" interval={12} attenuation={n => 0.15 * n} />)
     const tCanvas = trailCanvasRef.current;
     let trailRaf = 0;
     let cleanupTrail = () => {};
 
     if (tCanvas) {
-      const ctx = tCanvas.getContext('2d');
-      if (ctx) {
-        const points: { x: number; y: number }[] = [];
-        const maxPoints = 22;
-        const mouse = { x: -100, y: -100, active: false };
+      let width = window.innerWidth;
+      let height = window.innerHeight;
 
-        const resizeTrail = () => {
-          const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
-          tCanvas.width = window.innerWidth * dpr;
-          tCanvas.height = window.innerHeight * dpr;
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        };
-        resizeTrail();
+      const renderer = new THREE.WebGLRenderer({
+        canvas: tCanvas,
+        alpha: true,
+        antialias: true,
+        powerPreference: 'high-performance',
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+      renderer.setSize(width, height, false);
+      renderer.toneMapping = THREE.NoToneMapping;
 
-        const onMove = (e: MouseEvent) => {
-          mouse.x = e.clientX;
-          mouse.y = e.clientY;
-          mouse.active = true;
-        };
+      const scene = new THREE.Scene();
+      const camera = new THREE.OrthographicCamera(
+        -width / 2,
+        width / 2,
+        height / 2,
+        -height / 2,
+        0.1,
+        1000
+      );
+      camera.position.set(0, 0, 5);
 
-        window.addEventListener('resize', resizeTrail);
-        window.addEventListener('mousemove', onMove);
+      const pointCount = 10; // length = 1 -> 10 points in @react-three/drei Trail.js
+      const points = new Float32Array(pointCount * 3);
+      const geometry = new MeshLineGeometry();
+      const material = new MeshLineMaterial({
+        lineWidth: 0.1 * 0.2, // width = 0.2 -> 0.02
+        color: new THREE.Color('#066bbd'),
+        sizeAttenuation: 1,
+        resolution: new THREE.Vector2(width, height),
+      });
+      material.toneMapped = false;
 
-        const drawTrail = () => {
-          ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-          if (mouse.active) {
-            points.push({ x: mouse.x, y: mouse.y });
-            if (points.length > maxPoints) {
-              points.shift();
-            }
-          }
-          if (points.length > 2) {
-            for (let i = 1; i < points.length; i++) {
-              const t = i / points.length;
-              ctx.beginPath();
-              ctx.moveTo(points[i - 1].x, points[i - 1].y);
-              ctx.lineTo(points[i].x, points[i].y);
-              ctx.strokeStyle = '#066bbd';
-              ctx.lineWidth = Math.max(0.5, t * 4.5);
-              ctx.lineCap = 'round';
-              ctx.stroke();
-            }
-          }
-          trailRaf = requestAnimationFrame(drawTrail);
-        };
-        trailRaf = requestAnimationFrame(drawTrail);
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.frustumCulled = false;
+      scene.add(mesh);
 
-        cleanupTrail = () => {
-          cancelAnimationFrame(trailRaf);
-          window.removeEventListener('resize', resizeTrail);
-          window.removeEventListener('mousemove', onMove);
-        };
+      const mouse = { x: 0, y: 0 };
+      let frameCount = 0;
+
+      for (let i = 0; i < pointCount; i++) {
+        const offset = i * 3;
+        points[offset] = 0;
+        points[offset + 1] = 0;
+        points[offset + 2] = 0;
       }
+      geometry.setPoints(points, (n: number) => 0.15 * n);
+
+      const resizeTrail = () => {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+        renderer.setSize(width, height, false);
+        camera.left = -width / 2;
+        camera.right = width / 2;
+        camera.top = height / 2;
+        camera.bottom = -height / 2;
+        camera.updateProjectionMatrix();
+        material.resolution.set(width, height);
+      };
+
+      const onMove = (e: MouseEvent) => {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      };
+
+      window.addEventListener('resize', resizeTrail, { passive: true });
+      window.addEventListener('mousemove', onMove, { passive: true });
+
+      const drawTrail = () => {
+        const worldX = mouse.x * (width / 2);
+        const worldY = mouse.y * (height / 2);
+
+        if (frameCount === 0) {
+          points.copyWithin(0, 3);
+          const lastOffset = (pointCount - 1) * 3;
+          points[lastOffset] = worldX;
+          points[lastOffset + 1] = worldY;
+          points[lastOffset + 2] = 0;
+          geometry.setPoints(points, (n: number) => 0.15 * n);
+        }
+        frameCount = (frameCount + 1) % 12;
+
+        renderer.render(scene, camera);
+        trailRaf = requestAnimationFrame(drawTrail);
+      };
+      trailRaf = requestAnimationFrame(drawTrail);
+
+      cleanupTrail = () => {
+        cancelAnimationFrame(trailRaf);
+        window.removeEventListener('resize', resizeTrail);
+        window.removeEventListener('mousemove', onMove);
+        geometry.dispose();
+        material.dispose();
+        renderer.dispose();
+      };
     }
 
     return () => {
@@ -300,38 +347,52 @@ function RouteTransitionFx({ triggerKey }: { triggerKey: string }) {
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
-    setActive(true);
+    setActive(false);
+    const rafStart = requestAnimationFrame(() => {
+      setActive(true);
+    });
+
     const timers: NodeJS.Timeout[] = [];
 
     itemRefs.current.forEach((el) => {
       if (!el) return;
-      let count = 0;
-      const interval = setInterval(() => {
-        if (!el || count > 1) {
-          if (el) {
-            el.style.visibility = 'hidden';
-            el.style.transition = 'none';
-          }
-          clearInterval(interval);
-          return;
-        }
+      // Start at origin so first move smoothly fans out into the web of "Loading" labels
+      Object.assign(el.style, {
+        visibility: 'visible',
+        top: '33vh',
+        transform: 'translate(0vw, 0vh)',
+        transition: 'none',
+      });
+
+      const moveOnce = () => {
+        if (!el) return;
         Object.assign(el.style, {
           visibility: 'visible',
           top: '33vh',
           transform: `translate(${25 * Math.random()}vw, ${(Math.random() - 0.2) * 40}vh)`,
           transition: '.2s',
         });
-        count++;
-      }, 140);
-      timers.push(interval);
+      };
+
+      // Fan out immediately on next tick, then dart again at 200ms (exact chunk-206.js 200ms interval)
+      const t1 = setTimeout(moveOnce, 20);
+      const t2 = setTimeout(moveOnce, 220);
+      const t3 = setTimeout(() => {
+        if (!el) return;
+        el.style.visibility = 'hidden';
+        el.style.transition = 'none';
+      }, 440);
+
+      timers.push(t1, t2, t3);
     });
 
     const stopTimer = setTimeout(() => {
       setActive(false);
-    }, 600);
+    }, 520);
 
     return () => {
-      timers.forEach(clearInterval);
+      cancelAnimationFrame(rafStart);
+      timers.forEach(clearTimeout);
       clearTimeout(stopTimer);
     };
   }, [triggerKey]);
@@ -363,16 +424,23 @@ export function StefanChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [loaded, setLoaded] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const isFirstMountRef = useRef(true);
 
   useEffect(() => {
     document.documentElement.classList.add('loaded');
     setLoaded(true);
+    window.scrollTo(0, 0);
 
     const checkGuide = () => {
       const params = new URLSearchParams(window.location.search);
       setShowGuide(params.has('guide'));
     };
     checkGuide();
+
+    const t = setTimeout(() => {
+      isFirstMountRef.current = false;
+    }, 600);
+    return () => clearTimeout(t);
   }, [pathname]);
 
   return (
@@ -412,7 +480,11 @@ export function StefanChrome({ children }: { children: React.ReactNode }) {
           key={pathname}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.45 }}
+          transition={{
+            duration: 0.5,
+            delay: isFirstMountRef.current ? 0.05 : 0.44,
+            ease: easeOutExpo,
+          }}
         >
           {children}
         </motion.main>
