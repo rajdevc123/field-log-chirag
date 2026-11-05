@@ -1,4 +1,4 @@
-export type WorkContextId = 'future-east' | 'dr-reddys';
+export type WorkContextId = 'future-east' | 'dr-reddys' | 'nid';
 
 export interface WorkContextMeta {
   id: WorkContextId;
@@ -63,6 +63,13 @@ export const siteConfig = {
   ],
   year: '2026.',
   contexts: [
+    {
+      id: 'nid' as WorkContextId,
+      label: 'NID, New Media Design',
+      fullName: 'NID, New Media Design',
+      years: '2025 – Present',
+      role: 'M.Des Candidate',
+    },
     {
       id: 'dr-reddys' as WorkContextId,
       label: "Dr. Reddy's Labs",
