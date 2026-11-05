@@ -61,6 +61,7 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
   const overscrollUpRef = useRef(0);
   const overscrollDownRef = useRef(0);
   const navigatedRef = useRef(false);
+  const mountTimeRef = useRef(0);
 
   const scrollToProjectIndex = (idx: number) => {
     const itemEl = itemRefs.current[idx];
@@ -78,6 +79,7 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
     navigatedRef.current = false;
     overscrollUpRef.current = 0;
     overscrollDownRef.current = 0;
+    mountTimeRef.current = Date.now();
 
     const measure = () => {
       const trackEl = trackRef.current;
@@ -96,10 +98,23 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
     window.addEventListener('resize', measure);
 
     let rafId = 0;
-    const tick = () => {
+    let lastTime = performance.now();
+
+    const tick = (now: number) => {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      // Decay overscroll up momentum
+      if (overscrollUpRef.current > 0) {
+        overscrollUpRef.current *= Math.pow(0.85, dt * 60);
+        if (overscrollUpRef.current < 0.5) overscrollUpRef.current = 0;
+      }
+
       const diff = targetYRef.current - currentYRef.current;
-      currentYRef.current += diff * 0.09;
-      const velocity = diff * 0.09;
+      // Smooth damped lerp factor
+      const lerp = 1 - Math.pow(1 - 0.08, dt * 60);
+      currentYRef.current += diff * lerp;
+      const velocity = diff * lerp;
 
       if (trackRef.current) {
         trackRef.current.style.transform = `translate3d(0, ${-currentYRef.current}px, 0)`;
@@ -145,13 +160,24 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
       const isDesktop = window.matchMedia('(min-width: 900px)').matches;
       if (!isDesktop) return;
 
+      // Ignore spillover momentum from homepage scroll transition for 500ms
+      if (Date.now() - mountTimeRef.current < 500) return;
+
       measure();
       const maxS = maxScrollRef.current;
       const atTop = targetYRef.current <= 2;
 
-      if (e.deltaY < 0 && atTop) {
-        overscrollUpRef.current += Math.abs(e.deltaY);
-        if (overscrollUpRef.current > 150 && !navigatedRef.current) {
+      const normalizedDelta =
+        e.deltaMode === 1
+          ? e.deltaY * 20
+          : e.deltaMode === 2
+            ? e.deltaY * 100
+            : e.deltaY;
+
+      // Scroll up at top returns to home with deliberate threshold
+      if (normalizedDelta < 0 && atTop) {
+        overscrollUpRef.current += Math.abs(normalizedDelta);
+        if (overscrollUpRef.current > 380 && !navigatedRef.current) {
           navigatedRef.current = true;
           router.push('/');
         }
@@ -161,9 +187,11 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
       overscrollUpRef.current = 0;
       isManualHoverRef.current = false;
 
+      // Smooth, controlled scroll scaling: clamp step so one wheel flick doesn't blast past multiple projects
+      const step = Math.max(-140, Math.min(140, normalizedDelta * 0.35));
       targetYRef.current = Math.max(
         0,
-        Math.min(maxS, targetYRef.current + e.deltaY * 0.95)
+        Math.min(maxS, targetYRef.current + step)
       );
     };
 

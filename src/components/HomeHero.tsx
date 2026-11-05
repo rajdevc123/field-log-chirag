@@ -150,10 +150,8 @@ function ArtItem({
 
 function HomeArt({
   show,
-  wheelBoostRef,
 }: {
   show: boolean;
-  wheelBoostRef: React.MutableRefObject<number>;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const itemsRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -169,12 +167,6 @@ function HomeArt({
       const delta = Math.min(now - lastTime, 50);
       lastTime = now;
 
-      // Decay wheel parallax boost smoothly
-      wheelBoostRef.current *= 0.92;
-      if (Math.abs(wheelBoostRef.current) < 0.01) {
-        wheelBoostRef.current = 0;
-      }
-
       const totalHeight = Math.max(
         containerRef.current?.scrollHeight || window.innerHeight,
         500
@@ -186,7 +178,8 @@ function HomeArt({
         const el = els[i];
         const d = data[i];
         if (el && d) {
-          d.y -= (d.speed * delta * 0.1) + wheelBoostRef.current * d.speed * 1.8;
+          // Constant gentle ambient upward drift with no wheel scroll coupling
+          d.y -= d.speed * delta * 0.1;
           if (d.offset + d.y + d.height < 0) {
             d.y += totalHeight;
           } else if (d.offset + d.y > totalHeight) {
@@ -205,7 +198,7 @@ function HomeArt({
 
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [prefersReducedMotion, wheelBoostRef]);
+  }, [prefersReducedMotion]);
 
   return (
     <div className="Art_art" ref={containerRef} aria-hidden="true">
@@ -240,33 +233,65 @@ export function HomeHero() {
   const router = useRouter();
   const { title, description } = siteConfig.home;
   const navigatedRef = useRef(false);
-  const wheelBoostRef = useRef(0);
   const accumWheelRef = useRef(0);
+  const mountTimeRef = useRef(0);
 
-  // Parallax wheel response on Home that smoothly transitions to Projects (/work)
+  // Smooth, deliberate scroll transition from Home to Projects (/work)
   useEffect(() => {
     navigatedRef.current = false;
     accumWheelRef.current = 0;
+    mountTimeRef.current = Date.now();
+
+    let rafId = 0;
+    let lastTime = performance.now();
+
+    // Smoothly decay accumulated wheel delta so accidental micro-gestures don't linger
+    const decayLoop = (now: number) => {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      if (accumWheelRef.current > 0) {
+        accumWheelRef.current *= Math.pow(0.85, dt * 60);
+        if (accumWheelRef.current < 0.5) accumWheelRef.current = 0;
+      }
+
+      rafId = requestAnimationFrame(decayLoop);
+    };
+    rafId = requestAnimationFrame(decayLoop);
 
     const onWheel = (e: WheelEvent) => {
-      wheelBoostRef.current += e.deltaY * 0.12;
-      if (e.deltaY > 0) {
-        accumWheelRef.current += e.deltaY;
-        if (accumWheelRef.current > 120 && !navigatedRef.current) {
+      // Ignore initial spillover wheel events when navigating to home
+      if (Date.now() - mountTimeRef.current < 450) return;
+
+      const rawDelta =
+        e.deltaMode === 1
+          ? e.deltaY * 20
+          : e.deltaMode === 2
+            ? e.deltaY * 100
+            : e.deltaY;
+
+      if (rawDelta > 0) {
+        accumWheelRef.current += rawDelta;
+        // Require a deliberate, intentional downward scroll gesture (threshold 420)
+        if (accumWheelRef.current > 420 && !navigatedRef.current) {
           navigatedRef.current = true;
           router.push('/work');
         }
       } else {
-        accumWheelRef.current = Math.max(0, accumWheelRef.current + e.deltaY);
+        accumWheelRef.current = 0;
       }
     };
+
     window.addEventListener('wheel', onWheel, { passive: true });
-    return () => window.removeEventListener('wheel', onWheel);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('wheel', onWheel);
+    };
   }, [router]);
 
   return (
     <div className="Home_home" id="home">
-      <HomeArt show={true} wheelBoostRef={wheelBoostRef} />
+      <HomeArt show={true} />
 
       {/* Reserved ambient slot for Phase C Airavata layered puppet */}
       <div

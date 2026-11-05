@@ -202,10 +202,23 @@ export function CaseStudy({
     window.addEventListener('resize', measure);
 
     let rafId = 0;
-    const tick = () => {
+    let lastTime = performance.now();
+    const mountTime = Date.now();
+
+    const tick = (now: number) => {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      // Decay overscroll up momentum
+      if (overscrollUpRef.current > 0) {
+        overscrollUpRef.current *= Math.pow(0.85, dt * 60);
+        if (overscrollUpRef.current < 0.5) overscrollUpRef.current = 0;
+      }
+
       const diff = targetYRef.current - currentYRef.current;
-      currentYRef.current += diff * 0.095;
-      const velocity = diff * 0.095;
+      const lerp = 1 - Math.pow(1 - 0.08, dt * 60);
+      currentYRef.current += diff * lerp;
+      const velocity = diff * lerp;
 
       if (trackRef.current) {
         trackRef.current.style.transform = `translate3d(0, ${-currentYRef.current}px, 0)`;
@@ -233,14 +246,24 @@ export function CaseStudy({
       const isDesktop = window.matchMedia('(min-width: 900px)').matches;
       if (!isDesktop) return;
 
+      // Ignore spillover momentum from navigation transition for 450ms
+      if (Date.now() - mountTime < 450) return;
+
       measure();
       const maxS = maxScrollRef.current;
       const atTop = targetYRef.current <= 2;
 
+      const normalizedDelta =
+        e.deltaMode === 1
+          ? e.deltaY * 20
+          : e.deltaMode === 2
+            ? e.deltaY * 100
+            : e.deltaY;
+
       // Scroll up at top returns to /work (matches Stefan's chunk-764.js)
-      if (e.deltaY < 0 && atTop) {
-        overscrollUpRef.current += Math.abs(e.deltaY);
-        if (overscrollUpRef.current > 160 && !navigatedRef.current) {
+      if (normalizedDelta < 0 && atTop) {
+        overscrollUpRef.current += Math.abs(normalizedDelta);
+        if (overscrollUpRef.current > 380 && !navigatedRef.current) {
           navigatedRef.current = true;
           router.push('/work');
         }
@@ -248,9 +271,10 @@ export function CaseStudy({
       }
 
       overscrollUpRef.current = 0;
+      const step = Math.max(-140, Math.min(140, normalizedDelta * 0.35));
       targetYRef.current = Math.max(
         0,
-        Math.min(maxS, targetYRef.current + e.deltaY * 0.95)
+        Math.min(maxS, targetYRef.current + step)
       );
     };
 
