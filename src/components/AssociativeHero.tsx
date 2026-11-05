@@ -433,14 +433,57 @@ export function AssociativeHero({
   const [isHovered, setIsHovered] = useState(false);
   const lastManualInteractionRef = useRef<number>(0);
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const [mobileWordSizes, setMobileWordSizes] = useState<Record<string, string>>({});
 
-  // Trigger InfiniteScroller re-measurement on mount & resize
+  // Measure and compute per-word font sizes on mobile (< 768px) so every word spans the full phone width
   useEffect(() => {
-    const t = setTimeout(() => {
-      window.dispatchEvent(new Event('resize'));
-    }, 100);
-    return () => clearTimeout(t);
-  }, []);
+    const computeMobileSizes = () => {
+      const isPhone = window.matchMedia('(max-width: 767px)').matches;
+      if (!isPhone || !stageRef.current) {
+        setMobileWordSizes({});
+        return;
+      }
+
+      const stageW = stageRef.current.clientWidth;
+      if (stageW < 50) return;
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const testPx = 100;
+      ctx.font = `400 ${testPx}px 'HelveticaNowDisplay-Bold', sans-serif`;
+      if ('letterSpacing' in ctx) {
+        (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing =
+          '-0.04em';
+      }
+
+      const allWords = Array.from(new Set(['BETWEEN', 'AND', ...words]));
+      const nextSizes: Record<string, string> = {};
+
+      for (const w of allWords) {
+        const metrics = ctx.measureText(w);
+        const measuredW = Math.max(metrics.width, 10);
+        // Scale so the word fills 99% of the available phone width
+        const fittedPx = (stageW * 0.99 / measuredW) * testPx;
+        nextSizes[w] = `${fittedPx.toFixed(1)}px`;
+      }
+
+      setMobileWordSizes(nextSizes);
+    };
+
+    computeMobileSizes();
+    const t = setTimeout(computeMobileSizes, 120);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(computeMobileSizes).catch(() => {});
+    }
+    window.addEventListener('resize', computeMobileSizes);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', computeMobileSizes);
+    };
+  }, [words]);
 
   const stepRelationship = useCallback(
     (direction: 1 | -1, isManual: boolean) => {
@@ -587,18 +630,37 @@ export function AssociativeHero({
         {`Between ${slot1.text} and ${slot2.text} (${relIndex + 1} of ${sequence.length})`}
       </div>
 
-      <div className="AssocHero_stage">
+      <div className="AssocHero_stage" ref={stageRef}>
         {/* Line 1: Fixed structural word BETWEEN */}
-        <div className="AssocHero_line AssocHero_lineBetween">
+        <div
+          className="AssocHero_line AssocHero_lineBetween"
+          style={
+            mobileWordSizes['BETWEEN']
+              ? { fontSize: mobileWordSizes['BETWEEN'] }
+              : undefined
+          }
+        >
           <span className="AssocHero_fixedWord">BETWEEN</span>
         </div>
 
         {/* Line 2: Dynamic Word 1 (carries over from Word 2 on forward step) */}
-        <div className="AssocHero_line AssocHero_lineWord1">
+        <div
+          className="AssocHero_line AssocHero_lineWord1"
+          style={
+            mobileWordSizes[slot1.text]
+              ? { fontSize: mobileWordSizes[slot1.text] }
+              : undefined
+          }
+        >
           {exitingWord && exitingWord.fromSlot === 1 && (
             <motion.div
               key={`exit-${exitingWord.uid}`}
               className="AssocHero_wordExitOverlay"
+              style={
+                mobileWordSizes[exitingWord.text]
+                  ? { fontSize: mobileWordSizes[exitingWord.text] }
+                  : undefined
+              }
               initial={{ opacity: 1, y: '0%', x: '0%' }}
               animate={{
                 opacity: 0,
@@ -660,15 +722,37 @@ export function AssociativeHero({
           </motion.div>
         </div>
 
-        {/* Line 3: Fixed structural word AND + Dynamic Word 2 */}
-        <div className="AssocHero_line AssocHero_lineAndWord2">
+        {/* Line 3: Fixed structural word AND */}
+        <div
+          className="AssocHero_line AssocHero_lineAnd"
+          style={
+            mobileWordSizes['AND']
+              ? { fontSize: mobileWordSizes['AND'] }
+              : undefined
+          }
+        >
           <span className="AssocHero_fixedWord AssocHero_andToken">AND</span>
+        </div>
 
+        {/* Line 4: Dynamic Word 2 */}
+        <div
+          className="AssocHero_line AssocHero_lineWord2"
+          style={
+            mobileWordSizes[slot2.text]
+              ? { fontSize: mobileWordSizes[slot2.text] }
+              : undefined
+          }
+        >
           <div className="AssocHero_slot2Container">
             {exitingWord && exitingWord.fromSlot === 2 && (
               <motion.div
                 key={`exit-${exitingWord.uid}`}
                 className="AssocHero_wordExitOverlay"
+                style={
+                  mobileWordSizes[exitingWord.text]
+                    ? { fontSize: mobileWordSizes[exitingWord.text] }
+                    : undefined
+                }
                 initial={{ opacity: 1, y: '0%', x: '0%' }}
                 animate={{
                   opacity: 0,

@@ -50,6 +50,6 @@ export function getAllPlaygroundItems(): PlaygroundItem[] {
 
   return sorted.map((item, idx) => ({
     ...item,
-    displayNumber: String(sorted.length - idx).padStart(2, '0'),
+    displayNumber: String(idx + 1).padStart(2, '0'),
   }));
 }

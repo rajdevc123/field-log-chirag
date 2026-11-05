@@ -56,8 +56,11 @@ function getAuxLineCount(index: number) {
 }
 
 interface ScrollDatum {
+  width: number;
   height: number;
   offset: number;
+  offsetLeft: number;
+  x: number;
   y: number;
   speed: number;
 }
@@ -91,11 +94,14 @@ function ArtItem({
     itemsRefs.current[index] = el;
 
     const measure = () => {
-      const rect = el.getBoundingClientRect();
       el.style.transform = '';
+      const rect = el.getBoundingClientRect();
       scrollData.current[index] = {
+        width: rect.width,
         height: rect.height,
         offset: el.offsetTop,
+        offsetLeft: el.offsetLeft,
+        x: scrollData.current[index]?.x ?? 0,
         y: scrollData.current[index]?.y ?? 0,
         speed: Math.random() * (isAux ? 0.1 : 0.05) + 0.2,
       };
@@ -167,9 +173,14 @@ function HomeArt({
       const delta = Math.min(now - lastTime, 50);
       lastTime = now;
 
+      const isMobile = window.matchMedia('(max-width: 899px)').matches;
       const totalHeight = Math.max(
         containerRef.current?.scrollHeight || window.innerHeight,
         500
+      );
+      const containerWidth = Math.max(
+        containerRef.current?.clientWidth || window.innerWidth,
+        320
       );
       const data = scrollData.current;
       const els = itemsRefs.current;
@@ -178,17 +189,33 @@ function HomeArt({
         const el = els[i];
         const d = data[i];
         if (el && d) {
-          // Constant gentle ambient upward drift with no wheel scroll coupling
-          d.y -= d.speed * delta * 0.1;
-          if (d.offset + d.y + d.height < 0) {
-            d.y += totalHeight;
-          } else if (d.offset + d.y > totalHeight) {
-            d.y -= totalHeight;
-          }
-          el.style.transform = `translate3d(0, ${d.y}px, 0)`;
-          if (i >= ART_CONFIG.default.length && i % 4 === 0) {
-            const norm = (d.offset + d.height + d.y) / totalHeight;
-            el.style.setProperty('--scale', String(Math.round((norm - 0.5) * 6) + 1));
+          if (isMobile) {
+            // Mobile: Scroll horizontally from right to left (entering from right, leaving from left)
+            const spanW = containerWidth + d.width * 1.35;
+            d.x -= d.speed * delta * 0.15;
+            if (d.offsetLeft + d.x + d.width < 0) {
+              d.x += spanW;
+            } else if (d.offsetLeft + d.x > containerWidth + d.width * 0.35) {
+              d.x -= spanW;
+            }
+            el.style.transform = `translate3d(${d.x}px, 0, 0)`;
+            if (i >= ART_CONFIG.default.length && i % 4 === 0) {
+              const norm = (d.offsetLeft + d.width + d.x) / spanW;
+              el.style.setProperty('--scale', String(Math.round((norm - 0.5) * 6) + 1));
+            }
+          } else {
+            // Desktop: Constant gentle ambient upward drift with no wheel scroll coupling
+            d.y -= d.speed * delta * 0.1;
+            if (d.offset + d.y + d.height < 0) {
+              d.y += totalHeight;
+            } else if (d.offset + d.y > totalHeight) {
+              d.y -= totalHeight;
+            }
+            el.style.transform = `translate3d(0, ${d.y}px, 0)`;
+            if (i >= ART_CONFIG.default.length && i % 4 === 0) {
+              const norm = (d.offset + d.height + d.y) / totalHeight;
+              el.style.setProperty('--scale', String(Math.round((norm - 0.5) * 6) + 1));
+            }
           }
         }
       }
@@ -282,17 +309,42 @@ export function HomeHero() {
       }
     };
 
+    let touchStartY = 0;
+    let touchStartX = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        touchStartY = e.touches[0].clientY;
+        touchStartX = e.touches[0].clientX;
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (Date.now() - mountTimeRef.current < 450) return;
+      if (e.changedTouches.length === 1) {
+        const dy = touchStartY - e.changedTouches[0].clientY;
+        const dx = Math.abs(touchStartX - e.changedTouches[0].clientX);
+        // Deliberate upward swipe gesture transitions to /work
+        if (dy > 75 && dy > dx * 1.4 && !navigatedRef.current) {
+          navigatedRef.current = true;
+          router.push('/work');
+        }
+      }
+    };
+
     window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchend', onTouchEnd);
     };
   }, [router]);
 
   return (
     <div className="Home_home" id="home">
-      <HomeArt show={true} />
-
       {/* Reserved ambient slot for Phase C Airavata layered puppet */}
       <div
         id="airavata-ambient-slot"
@@ -342,6 +394,8 @@ export function HomeHero() {
             ))}
           </span>
         </HeroTitle>
+
+        <HomeArt show={true} />
 
         <div className="HomeHero_content">
           <div className="HomeHero_description">

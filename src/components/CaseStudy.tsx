@@ -318,20 +318,20 @@ export function CaseStudy({
     <div id="project" className="Project_project">
       <div className="Spacer_spacer" />
 
+      {/* Mobile Top Back Link (< 900px) */}
+      <div className="MobileBackNav">
+        <Link href="/work" scroll={false} className="MobileBackNav_link">
+          <BodyCopyMedium as="span">← Back to projects</BodyCopyMedium>
+        </Link>
+      </div>
+
       <PageTitle
         title={project.titleParts || [project.title]}
         titleOffset={project.titleOffset || ['35%', '42%']}
         show={true}
       />
 
-      {/* Mobile/Tablet MediaGrid (< 900px) */}
-      <MobileMediaStack
-        media={mediaList}
-        colors={project.colors}
-        className="MediaGrid_mobileOnly"
-      />
-
-      {/* Left Column Content (exact Stefan Project_content layout) */}
+      {/* Left Column Content (exact Stefan Project_content layout; on mobile sits cleanly above media stack) */}
       <div className="Project_content">
         <ListSection
           title="Role"
@@ -366,6 +366,13 @@ export function CaseStudy({
           className="Project_link"
         />
       </div>
+
+      {/* Mobile/Tablet MediaGrid (< 900px) */}
+      <MobileMediaStack
+        media={mediaList}
+        colors={project.colors}
+        className="MediaGrid_mobileOnly"
+      />
 
       {/* Desktop Right-Column Media Stack (exact Stefan columns 7-12, pure 16:9 frames) */}
       <div
@@ -451,16 +458,6 @@ export function CaseStudy({
           </Title>
         </div>
       </footer>
-
-      <div
-        style={{
-          marginTop: 'max(5rem, 6vw)',
-          paddingBottom: 'var(--indent)',
-        }}
-        className="min-[900px]:hidden"
-      >
-        <SiteFooter show={true} delay={0.6} />
-      </div>
     </div>
   );
 }

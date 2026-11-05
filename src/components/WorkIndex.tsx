@@ -384,7 +384,33 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
                             isFocused ? 'ProjectsList_hovered' : ''
                           }`.trim()}
                         >
-                          {numLabel}. {project.title}
+                          <span className="WorkMobile_cardMedia" aria-hidden="true">
+                            <span
+                              className="MediaGrid_mediaContent WorkMobile_cardFrame"
+                              style={{
+                                backgroundColor:
+                                  project.colors?.[0] || 'var(--color-default)',
+                              }}
+                            >
+                              {isVideoSrc(project.heroMedia || project.thumbnail) ? (
+                                <video
+                                  src={project.heroMedia || project.thumbnail}
+                                  autoPlay
+                                  muted
+                                  loop
+                                  playsInline
+                                />
+                              ) : (
+                                <img
+                                  src={project.heroMedia || project.thumbnail}
+                                  alt=""
+                                />
+                              )}
+                            </span>
+                          </span>
+                          <span className="WorkMobile_cardTitle">
+                            {numLabel}. {project.title}
+                          </span>
                         </Link>
                       </BodyCopyLarge>
                     </RevealMask>
@@ -476,17 +502,6 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
             );
           })}
         </div>
-      </div>
-
-      {/* Mobile Footer */}
-      <div
-        style={{
-          paddingBottom: 'var(--indent)',
-          marginTop: 'max(4rem, 5vw)',
-        }}
-        className="lg:hidden"
-      >
-        <SiteFooter show={true} delay={0.5} />
       </div>
     </div>
   );

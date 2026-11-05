@@ -86,6 +86,13 @@
     position: fixed; inset: 0; display: grid; place-items: center;
     color: #243822; font-size: 12px; letter-spacing: .14em; background: #f3efe6; z-index: 10;
   }
+  body.preview-mode .ui,
+  body.preview-mode #plate-badge,
+  body.preview-mode #story-panel,
+  body.preview-mode #field-note,
+  body.preview-mode #prompt-banner {
+    display: none !important;
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -1442,6 +1449,13 @@ const wayfinderEl = document.getElementById('wayfinder');
 const promptEl = document.getElementById('prompt-banner');
 const target = new THREE.Vector3(), toeTarget = new THREE.Vector3(), tiltQ = new THREE.Quaternion(), toeQ = new THREE.Quaternion();
 
+const IS_PREVIEW = params.get('preview') === '1';
+if (IS_PREVIEW) {
+  document.body.classList.add('preview-mode');
+  storyMode = false;
+  syncPaletteAndStyle();
+}
+
 if (params.get('pulse') === '1') {
   triggerTrumpetInkWave();
   sharedUniforms.uPulseWave.value.w = 7.4;
@@ -1472,8 +1486,10 @@ function frame() {
   if (FREEZE_P !== null) {
     phase = FREEZE_P; amp = 1;
   } else {
-    const fwd = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
-    const turn = (keys.KeyA || keys.ArrowLeft ? 1 : 0) - (keys.KeyD || keys.ArrowRight ? 1 : 0);
+    const manualFwd = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
+    const manualTurn = (keys.KeyA || keys.ArrowLeft ? 1 : 0) - (keys.KeyD || keys.ArrowRight ? 1 : 0);
+    const fwd = IS_PREVIEW && !manualFwd ? 0.72 : manualFwd;
+    const turn = IS_PREVIEW && !manualTurn ? Math.sin(time * 0.28) * 0.25 : manualTurn;
     const hurry = (keys.ShiftLeft || keys.ShiftRight) && fwd > 0 ? G.hurry : 1;
     const targetSpeed = fwd * G.walkSpeed * hurry * (fwd < 0 ? 0.6 : 1);
     speed += (targetSpeed - speed) * (1 - Math.exp(-dt * 2.5));

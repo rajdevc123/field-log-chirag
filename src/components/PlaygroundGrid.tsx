@@ -26,6 +26,10 @@ function isImageSrc(src: string) {
   return /\.(png|jpg|jpeg|webp|svg|gif)$/i.test(src);
 }
 
+function isHtmlSrc(src: string) {
+  return /\.html(\?.*)?$/i.test(src);
+}
+
 export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -140,6 +144,19 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
       <div id="projects" className="Projects_projects">
         <div className="Spacer_spacer" />
 
+        {/* Mobile Top Back Link when viewing an experiment (< 900px) */}
+        {activeItem && (
+          <div className="MobileBackNav">
+            <button
+              type="button"
+              onClick={closeExperiment}
+              className="MobileBackNav_link"
+            >
+              <BodyCopyMedium as="span">← Back to playground</BodyCopyMedium>
+            </button>
+          </div>
+        )}
+
         {/* Top-Left Title: "Playground" in grid view, or the selected piece's 2-line title when clicked */}
         <div key={activeItem ? activeItem.slug : 'playground-root'}>
           <PageTitle
@@ -174,13 +191,14 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
 
         <AnimatePresence mode="wait">
           {!activeItem ? (
-            /* STATE 1: Clean Thumbnail Grid Only (no surrounding text clutter) */
+            /* STATE 1: Clean Thumbnail Grid Only (no surrounding text clutter on desktop; scannable labels on mobile) */
             <motion.section
               key="playground-grid"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.35 }}
+              className="Playground_gridSection"
               style={{
                 marginTop: 'max(2.5rem, 5vw)',
                 paddingBottom: 'calc(var(--indent) * 8)',
@@ -199,6 +217,7 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
                   }}
                   onMouseEnter={() => setHoveredSlug(item.slug)}
                   onClick={() => openExperiment(item.slug)}
+                  className="Playground_cardArticle"
                   style={{ cursor: 'pointer', willChange: 'transform' }}
                 >
                   <motion.div
@@ -214,10 +233,31 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
                         loop
                         playsInline
                       />
+                    ) : isHtmlSrc(item.thumbnail) ? (
+                      <iframe
+                        src={item.thumbnail}
+                        title={item.title}
+                        tabIndex={-1}
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          width: '100%',
+                          height: '100%',
+                          border: 0,
+                          display: 'block',
+                          pointerEvents: 'none',
+                          zIndex: 2,
+                        }}
+                      />
                     ) : (
                       <img src={item.thumbnail} alt={item.title} />
                     )}
                   </motion.div>
+                  <div className="PlaygroundMobile_cardMeta">
+                    <BodyCopyMedium as="span">
+                      {item.displayNumber}. {item.title}
+                    </BodyCopyMedium>
+                  </div>
                 </article>
               ))}
             </motion.section>
@@ -230,6 +270,95 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.35 }}
             >
+              {/* Mobile Media View (< 900px): Placed immediately below the title for instant visual feedback */}
+              <div
+                className="min-[900px]:hidden"
+                style={{ marginTop: 'max(1.25rem, 2vw)' }}
+              >
+                <div className="MediaGrid_mediaContent">
+                  {activeItem.embed && isVideoSrc(activeItem.embed) ? (
+                    <video
+                      src={activeItem.embed}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      controls
+                    />
+                  ) : activeItem.embed && isImageSrc(activeItem.embed) ? (
+                    <img src={activeItem.embed} alt={activeItem.title} />
+                  ) : activeItem.embed ? (
+                    <iframe
+                      src={activeItem.embed}
+                      title={activeItem.title}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        border: 0,
+                        display: 'block',
+                        zIndex: 2,
+                      }}
+                      allow="accelerometer; autoplay; fullscreen; gyroscope"
+                    />
+                  ) : (
+                    <img
+                      src={activeItem.thumbnail}
+                      alt={activeItem.title}
+                    />
+                  )}
+                </div>
+
+                {/* Mobile horizontal touch-scrollable thumbnail strip */}
+                <div className="PlaygroundMobile_thumbStrip">
+                  {items
+                    .filter((i) => i.slug !== activeItem.slug)
+                    .map((thumbItem) => (
+                      <button
+                        key={thumbItem.slug}
+                        type="button"
+                        onClick={() => openExperiment(thumbItem.slug)}
+                        className="PlaygroundMobile_thumbButton"
+                        aria-label={thumbItem.title}
+                      >
+                        <div className="MediaGrid_mediaContent">
+                          {isVideoSrc(thumbItem.thumbnail) ? (
+                            <video
+                              src={thumbItem.thumbnail}
+                              autoPlay
+                              muted
+                              loop
+                              playsInline
+                            />
+                          ) : isHtmlSrc(thumbItem.thumbnail) ? (
+                            <iframe
+                              src={thumbItem.thumbnail}
+                              title={thumbItem.title}
+                              tabIndex={-1}
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                width: '100%',
+                                height: '100%',
+                                border: 0,
+                                display: 'block',
+                                pointerEvents: 'none',
+                                zIndex: 2,
+                              }}
+                            />
+                          ) : (
+                            <img
+                              src={thumbItem.thumbnail}
+                              alt={thumbItem.title}
+                            />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              </div>
+
               {/* Left Column: Clean Stefan-formatted metadata */}
               <div className="Project_content">
                 <div className="List_listWrapper Project_role">
@@ -303,6 +432,29 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
 
                 <div className="List_listWrapper Project_link">
                   <ul>
+                    {activeItem.embed && isHtmlSrc(activeItem.embed) && (
+                      <li
+                        className="List_listItem"
+                        style={{ marginBottom: '0.65em' }}
+                      >
+                        <a
+                          href={activeItem.embed}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="List_link"
+                        >
+                          <BodyCopyMedium>
+                            <RevealMask
+                              show={true}
+                              delay={0.39}
+                              className="List_label"
+                            >
+                              Launch fullscreen ↗
+                            </RevealMask>
+                          </BodyCopyMedium>
+                        </a>
+                      </li>
+                    )}
                     <li className="List_listItem">
                       <button
                         type="button"
@@ -416,6 +568,22 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
                             loop
                             playsInline
                           />
+                        ) : isHtmlSrc(thumbItem.thumbnail) ? (
+                          <iframe
+                            src={thumbItem.thumbnail}
+                            title={thumbItem.title}
+                            tabIndex={-1}
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              width: '100%',
+                              height: '100%',
+                              border: 0,
+                              display: 'block',
+                              pointerEvents: 'none',
+                              zIndex: 2,
+                            }}
+                          />
                         ) : (
                           <img
                             src={thumbItem.thumbnail}
@@ -424,30 +592,6 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
                         )}
                       </div>
                     ))}
-                </div>
-              </div>
-
-              {/* Mobile Media View (< 900px) */}
-              <div
-                className="min-[900px]:hidden"
-                style={{ marginTop: 'var(--indent)' }}
-              >
-                <div className="MediaGrid_mediaContent">
-                  {activeItem.embed && isVideoSrc(activeItem.embed) ? (
-                    <video
-                      src={activeItem.embed}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      controls
-                    />
-                  ) : (
-                    <img
-                      src={activeItem.thumbnail}
-                      alt={activeItem.title}
-                    />
-                  )}
                 </div>
               </div>
 
@@ -473,16 +617,6 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
             </motion.div>
           )}
         </AnimatePresence>
-
-        <div
-          style={{
-            paddingBottom: 'var(--indent)',
-            marginTop: 'max(3rem, 4vw)',
-          }}
-          className="min-[900px]:hidden"
-        >
-          <SiteFooter show={true} delay={0.5} />
-        </div>
       </div>
     </LayoutGroup>
   );

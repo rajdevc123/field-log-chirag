@@ -8,7 +8,7 @@ import { BodyCopyMedium } from './Text';
 import { RevealMask } from './RevealMask';
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Intro' },
+  { href: '/', label: 'Home' },
   { href: '/work', label: 'Projects' },
   { href: '/playground', label: 'Playground' },
   { href: '/about', label: 'About' },
@@ -17,11 +17,9 @@ const NAV_ITEMS = [
 export function SiteNav({ show = true }: { show?: boolean }) {
   const pathname = usePathname();
   const isHome = pathname === '/';
-  // On Stefan's site, Nav reveals when not on Home (or on Home we also show Nav so user can click Projects/Playground/About directly, just like when navigating back!)
-  // Wait: on Stefan's site, on `/` the user can either scroll down OR click nav if visible. Wait—on Stefan's site, why was `n = t && !e` in `_app.js`? Wait: on `/` in `index.html`, let's check if Nav was visible on `/` or if Nav is visible everywhere!
-  // Wait: on Stefan's site, `n = t && !e` hid the top-right Nav on `/` so the giant `Stefan Vitasović / Creative Developer` hero title spans 100% width across the top without colliding with the top-right nav! Wait — or what if someone is on `/` and doesn't know to scroll? Let's check!
-  // On `/` the hero title `Chirag Rajdeo / New Media Design` is at the very top of the viewport (`margin-top: calc(-0.25 * var(--indent))`). If we place the nav on `/` right below the title or at the bottom-right, or keep Stefan's exact nav on `/work`, `/work/[slug]`, `/playground`, `/about` AND also provide clickable nav links on `/` (e.g. in the hero / bottom-right), then `/` has zero overlap with the full-bleed `HomeHero_title` AND is 100% navigable by click as well as scroll!
-  const showTopNav = show && !isHome;
+  const isWork = pathname === '/work';
+  // Top nav is hidden on Home AND on Projects (/work), because both share the sticky bottom-left nav
+  const showTopNav = show && !isHome && !isWork;
 
   return (
     <>
