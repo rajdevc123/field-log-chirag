@@ -147,7 +147,6 @@ export function ConversationalMedium() {
   return (
     <section className="Medium_section" aria-labelledby="medium-title">
       <motion.header className="Medium_header" {...reveal()}>
-        <span className="Frame_eyebrow">02 · The conversational medium</span>
         <h2 id="medium-title" className="Text_title Frame_title">
           Annam
         </h2>

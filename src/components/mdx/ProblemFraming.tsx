@@ -53,7 +53,6 @@ export function ProblemFraming() {
     <section className="Frame_section" aria-labelledby="frame-title">
       <div className="Frame_main">
         <motion.header className="Frame_header" {...reveal()}>
-          <span className="Frame_eyebrow">01 · Research grounding</span>
           <h2 id="frame-title" className="Text_title Frame_title">
             Problem Framing
           </h2>

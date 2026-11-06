@@ -64,9 +64,8 @@ export function PhysicalForm() {
       {/* Left — how the form was arrived at */}
       <div className="Form_main">
         <motion.header className="Form_header" {...reveal()}>
-          <span className="Frame_eyebrow">03 · Physicality &amp; form</span>
           <h2 id="form-title" className="Text_title Frame_title">
-            Physicality and form
+            Crafting the physicality and form
           </h2>
           <p className="Form_lede">
             The making moved from screens to circuits, form and affordances.

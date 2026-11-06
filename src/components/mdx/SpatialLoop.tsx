@@ -46,7 +46,6 @@ export function SpatialLoop() {
   return (
     <section className="Loop_section" aria-labelledby="loop-title">
       <motion.header className="Loop_header" {...reveal()}>
-        <span className="Frame_eyebrow">04 · Two places, one object</span>
         <h2 id="loop-title" className="Text_title Frame_title">
           Where it lives
         </h2>

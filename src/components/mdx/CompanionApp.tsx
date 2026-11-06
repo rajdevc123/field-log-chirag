@@ -117,7 +117,6 @@ export function CompanionApp() {
     <section className="App_section" aria-labelledby="app-title">
       <div className="App_main">
         <motion.header className="App_header" {...reveal()}>
-          <span className="Frame_eyebrow">05 · The companion app</span>
           <h2 id="app-title" className="Text_title Frame_title">
             Annam Companion App
           </h2>
