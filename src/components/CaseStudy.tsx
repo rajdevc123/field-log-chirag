@@ -244,6 +244,10 @@ export function CaseStudy({
 
   // Smooth lerp scroll for the right-hand media stack (matches Stefan's chunk-892.js)
   useEffect(() => {
+    // Banner pages scroll the window natively and have no media track; without
+    // this, every scroll up reads as "at top" and bounces back to /work.
+    if (project.banner) return;
+
     targetYRef.current = 0;
     currentYRef.current = 0;
     overscrollUpRef.current = 0;
@@ -350,7 +354,7 @@ export function CaseStudy({
       window.removeEventListener('resize', measure);
       window.removeEventListener('wheel', onWheel);
     };
-  }, [project.slug, router]);
+  }, [project.slug, project.banner, router]);
 
   const contextMeta = siteConfig.contexts.find((c) => c.id === project.context);
   const contextLine = contextMeta

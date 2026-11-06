@@ -9,6 +9,10 @@ import { Video } from '@/components/mdx/Video';
 import { TwoCol } from '@/components/mdx/TwoCol';
 import { ProblemFraming } from '@/components/mdx/ProblemFraming';
 import { ConversationalMedium } from '@/components/mdx/ConversationalMedium';
+import { PhysicalForm } from '@/components/mdx/PhysicalForm';
+import { SpatialLoop } from '@/components/mdx/SpatialLoop';
+import { CompanionApp } from '@/components/mdx/CompanionApp';
+import { ProjectConclusion } from '@/components/mdx/ProjectConclusion';
 
 const mdxComponents = {
   Figure,
@@ -17,6 +21,10 @@ const mdxComponents = {
   TwoCol,
   ProblemFraming,
   ConversationalMedium,
+  PhysicalForm,
+  SpatialLoop,
+  CompanionApp,
+  ProjectConclusion,
 };
 
 export function generateStaticParams() {
