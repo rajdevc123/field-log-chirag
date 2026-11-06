@@ -7,12 +7,14 @@ import { Figure } from '@/components/mdx/Figure';
 import { Gallery } from '@/components/mdx/Gallery';
 import { Video } from '@/components/mdx/Video';
 import { TwoCol } from '@/components/mdx/TwoCol';
+import { ProblemFraming } from '@/components/mdx/ProblemFraming';
 
 const mdxComponents = {
   Figure,
   Gallery,
   Video,
   TwoCol,
+  ProblemFraming,
 };
 
 export function generateStaticParams() {

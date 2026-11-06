@@ -3,6 +3,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { ArrowLeft } from 'lucide-react';
 import type { ProjectEntry } from '@/content/getProjects';
 import { siteConfig } from '@/content/site';
 import { BodyCopyLarge, BodyCopyMedium, Title } from './Text';
@@ -150,8 +152,70 @@ function MobileMediaStack({
   );
 }
 
+function BannerOnly({
+  project,
+  mdxContent,
+}: {
+  project: ProjectEntry;
+  mdxContent?: React.ReactNode;
+}) {
+  const router = useRouter();
+  const overview = project.overview || [];
+
+  useEffect(() => {
+    document.body.classList.add('Banner_page');
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') router.push('/work');
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.classList.remove('Banner_page');
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [router]);
+
+  return (
+    <div id="project" className="Project_project">
+      <div className="Banner_hero">
+        <img className="Banner_image" src={project.banner} alt={project.title} />
+
+        <Link href="/work" scroll={false} className="Banner_back">
+          <ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true" />
+          <span>Back to projects</span>
+        </Link>
+
+        {overview.length > 0 && (
+          <motion.dl
+            className="Meta_bar"
+            aria-label="Project overview"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: [0.19, 1, 0.22, 1] }}
+          >
+            {overview.map((row) => (
+              <div className="Meta_group" key={row.label}>
+                <dt className="Meta_groupLabel">{row.label}</dt>
+                <dd className="Meta_tags">
+                  {row.value.split(' · ').map((tag) => (
+                    <span key={tag} className="Meta_tag">
+                      {tag}
+                    </span>
+                  ))}
+                </dd>
+              </div>
+            ))}
+          </motion.dl>
+        )}
+      </div>
+
+      {mdxContent}
+    </div>
+  );
+}
+
 export function CaseStudy({
   project,
+  mdxContent,
 }: {
   project: ProjectEntry;
   mdxContent?: React.ReactNode;
@@ -313,6 +377,10 @@ export function CaseStudy({
     project.media && project.media.length > 0
       ? project.media
       : [project.thumbnail];
+
+  if (project.banner) {
+    return <BannerOnly project={project} mdxContent={mdxContent} />;
+  }
 
   return (
     <div id="project" className="Project_project">

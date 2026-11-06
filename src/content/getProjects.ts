@@ -16,6 +16,8 @@ export interface ProjectFrontmatter {
   tags: string[];
   thumbnail: string;
   heroMedia?: string;
+  banner?: string;
+  overview?: { label: string; value: string }[];
   media?: string[];
   colors?: string[];
   summary?: string[];
@@ -66,6 +68,8 @@ export function getAllProjects(): ProjectEntry[] {
       tags: Array.isArray(data.tags) ? data.tags : [],
       thumbnail: data.thumbnail ?? `/projects/${slug}/thumb.svg`,
       heroMedia: data.heroMedia,
+      banner: data.banner,
+      overview: Array.isArray(data.overview) ? data.overview : undefined,
       media: Array.isArray(data.media)
         ? data.media
         : [data.heroMedia || data.thumbnail || `/projects/${slug}/thumb.svg`],

@@ -441,7 +441,9 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
           {orderedProjects.map((project, idx) => {
             const isActive = activeProject?.slug === project.slug;
             const firstVideo = project.media?.find((m) => isVideoSrc(m));
-            const previewItems = firstVideo
+            const previewItems = project.banner
+              ? [project.thumbnail]
+              : firstVideo
               ? [project.heroMedia || project.thumbnail, firstVideo]
               : (project.media && project.media.length > 0
                   ? project.media.slice(0, 2)
