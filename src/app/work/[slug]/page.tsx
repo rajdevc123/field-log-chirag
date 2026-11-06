@@ -8,6 +8,7 @@ import { Gallery } from '@/components/mdx/Gallery';
 import { Video } from '@/components/mdx/Video';
 import { TwoCol } from '@/components/mdx/TwoCol';
 import { ProblemFraming } from '@/components/mdx/ProblemFraming';
+import { ConversationalMedium } from '@/components/mdx/ConversationalMedium';
 
 const mdxComponents = {
   Figure,
@@ -15,6 +16,7 @@ const mdxComponents = {
   Video,
   TwoCol,
   ProblemFraming,
+  ConversationalMedium,
 };
 
 export function generateStaticParams() {
