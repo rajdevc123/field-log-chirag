@@ -13,6 +13,7 @@ import { PhysicalForm } from '@/components/mdx/PhysicalForm';
 import { SpatialLoop } from '@/components/mdx/SpatialLoop';
 import { CompanionApp } from '@/components/mdx/CompanionApp';
 import { ProjectConclusion } from '@/components/mdx/ProjectConclusion';
+import { ReadingProgress } from '@/components/mdx/ReadingProgress';
 
 const mdxComponents = {
   Figure,
@@ -25,6 +26,7 @@ const mdxComponents = {
   SpatialLoop,
   CompanionApp,
   ProjectConclusion,
+  ReadingProgress,
 };
 
 export function generateStaticParams() {

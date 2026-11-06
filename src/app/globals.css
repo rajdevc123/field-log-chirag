@@ -3622,3 +3622,22 @@ body.Banner_page .Layout_contactWrapper {
     grid-column: 9 / 13;
   }
 }
+
+/* Reading progress — a 2px accent line across the top that fills as you scroll. */
+.Progress_track {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  height: 2px;
+  pointer-events: none;
+}
+
+.Progress_bar {
+  height: 100%;
+  background-color: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  will-change: transform;
+}
