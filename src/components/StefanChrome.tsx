@@ -9,6 +9,7 @@ import { easeOutExpo } from './easings';
 import { BodyCopyMedium, BodyCopySmall } from './Text';
 import { SiteNav } from './SiteNav';
 import { SiteFooter } from './SiteFooter';
+import { BackToProjects } from './BackToProjects';
 
 const FX_ITEMS = Array.from({ length: 18 }, (_, i) => i);
 const FX_SQUARES = [0, 1, 2];
@@ -422,6 +423,7 @@ function RouteTransitionFx({ triggerKey }: { triggerKey: string }) {
 
 export function StefanChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isProjectPage = pathname.startsWith('/work/');
   const [loaded, setLoaded] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const isFirstMountRef = useRef(true);
@@ -490,11 +492,15 @@ export function StefanChrome({ children }: { children: React.ReactNode }) {
         </motion.main>
       </div>
 
-      <SiteNav show={loaded} />
+      {isProjectPage ? (
+        <BackToProjects show={loaded} />
+      ) : (
+        <SiteNav show={loaded} />
+      )}
       <CrosshairLines show={loaded} />
 
       <div className="Layout_contactWrapper">
-        <SiteFooter show={loaded} delay={0.65} />
+        <SiteFooter show={loaded} delay={0.65} hideNav={isProjectPage} />
       </div>
 
       <BackgroundCanvas />

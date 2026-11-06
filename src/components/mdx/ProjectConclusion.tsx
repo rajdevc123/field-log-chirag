@@ -1,8 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 const REACTIONS: { who: string; body: string }[] = [
@@ -87,13 +85,6 @@ export function ProjectConclusion() {
           ))}
         </dl>
       </motion.div>
-
-      <div className="End_footer">
-        <Link href="/work" scroll={false} className="End_back">
-          <ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true" />
-          <span>Back to projects</span>
-        </Link>
-      </div>
     </section>
   );
 }

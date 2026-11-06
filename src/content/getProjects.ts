@@ -12,6 +12,8 @@ export interface ProjectFrontmatter {
   year: number | string;
   role: string;
   collaborators?: string[];
+  /** Hide the Context & Scope block on the case study. */
+  hideContext?: boolean;
   tools: string[];
   tags: string[];
   thumbnail: string;
@@ -64,6 +66,7 @@ export function getAllProjects(): ProjectEntry[] {
       year: data.year ?? 2025,
       role: data.role ?? 'Designer / Developer',
       collaborators: Array.isArray(data.collaborators) ? data.collaborators : [],
+      hideContext: Boolean(data.hideContext),
       tools: Array.isArray(data.tools) ? data.tools : [],
       tags: Array.isArray(data.tags) ? data.tags : [],
       thumbnail: data.thumbnail ?? `/projects/${slug}/thumb.svg`,

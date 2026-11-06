@@ -17,9 +17,12 @@ const NAV_ITEMS = [
 export function SiteFooter({
   show = true,
   delay = 0.65,
+  hideNav = false,
 }: {
   show?: boolean;
   delay?: number;
+  /** Project pages swap the nav for the Back to projects pill. */
+  hideNav?: boolean;
 }) {
   const pathname = usePathname();
   const isHome = pathname === '/';
@@ -38,10 +41,11 @@ export function SiteFooter({
   const showDesktopBottomNav = isHome || isWork;
 
   return (
-    <div className="Contact_contact">
+    <div className={`Contact_contact${hideNav ? ' Contact_noNav' : ''}`}>
       {/* Sticky bottom-left navigation bar:
           - Desktop (>= 900px): active on Home (/) and Projects (/work)
           - Mobile (< 900px): active across ALL pages for consistent thumb-friendly navigation */}
+      {!hideNav && (
       <nav
         className={`Contact_navLinks ${
           showDesktopBottomNav ? '' : 'Contact_mobileOnlyNav'
@@ -68,6 +72,7 @@ export function SiteFooter({
           );
         })}
       </nav>
+      )}
 
       {/* Bottom right: 2026. alone in the bottom right corner */}
       <div className="Contact_year" style={{ pointerEvents: 'auto' }}>

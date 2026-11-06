@@ -20,6 +20,10 @@ function isVideoSrc(src: string) {
   return /\.(mp4|webm|mov)$/i.test(src);
 }
 
+function isImageSrc(src: string) {
+  return /\.(png|jpe?g|webp|gif|avif|svg)$/i.test(src);
+}
+
 export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
   const router = useRouter();
 
@@ -440,13 +444,17 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
         >
           {orderedProjects.map((project, idx) => {
             const isActive = activeProject?.slug === project.slug;
-            const firstVideo = project.media?.find((m) => isVideoSrc(m));
+            // Embeds (e.g. YouTube links) can't render as a preview card.
+            const previewable = (project.media || []).filter(
+              (m) => isVideoSrc(m) || isImageSrc(m),
+            );
+            const firstVideo = previewable.find((m) => isVideoSrc(m));
             const previewItems = project.banner
               ? [project.thumbnail]
               : firstVideo
               ? [project.heroMedia || project.thumbnail, firstVideo]
-              : (project.media && project.media.length > 0
-                  ? project.media.slice(0, 2)
+              : (previewable.length > 0
+                  ? previewable.slice(0, 2)
                   : [project.thumbnail]);
 
             return (

@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
 import type { ProjectEntry } from '@/content/getProjects';
 import { siteConfig } from '@/content/site';
 import { BodyCopyLarge, BodyCopyMedium, Title } from './Text';
@@ -178,11 +177,6 @@ function BannerOnly({
     <div id="project" className="Project_project">
       <div className="Banner_hero">
         <img className="Banner_image" src={project.banner} alt={project.title} />
-
-        <Link href="/work" scroll={false} className="Banner_back">
-          <ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true" />
-          <span>Back to projects</span>
-        </Link>
 
         {overview.length > 0 && (
           <motion.dl
@@ -388,14 +382,8 @@ export function CaseStudy({
 
   return (
     <div id="project" className="Project_project">
-      <div className="Spacer_spacer" />
-
-      {/* Mobile Top Back Link (< 900px) */}
-      <div className="MobileBackNav">
-        <Link href="/work" scroll={false} className="MobileBackNav_link">
-          <BodyCopyMedium as="span">← Back to projects</BodyCopyMedium>
-        </Link>
-      </div>
+      {/* Leaves room for the Back to projects pill above the title */}
+      <div className="Spacer_spacer Project_backSpace" />
 
       <PageTitle
         title={project.titleParts || [project.title]}
@@ -412,12 +400,14 @@ export function CaseStudy({
           className="Project_role"
         />
 
-        <ListSection
-          title="Context & Scope"
-          items={contextItems}
-          delay={0.2}
-          className="Project_recognitions"
-        />
+        {!project.hideContext && (
+          <ListSection
+            title="Context & Scope"
+            items={contextItems}
+            delay={0.2}
+            className="Project_recognitions"
+          />
+        )}
 
         {project.summary && project.summary.length > 0 && (
           <ListSection
@@ -428,15 +418,13 @@ export function CaseStudy({
           />
         )}
 
-        <ListSection
-          items={
-            project.externalUrl
-              ? [{ label: 'Visit website', url: project.externalUrl }]
-              : [{ label: 'Back to projects', url: '/work', internal: true }]
-          }
-          delay={0.55}
-          className="Project_link"
-        />
+        {project.externalUrl && (
+          <ListSection
+            items={[{ label: 'Visit website', url: project.externalUrl }]}
+            delay={0.55}
+            className="Project_link"
+          />
+        )}
       </div>
 
       {/* Mobile/Tablet MediaGrid (< 900px) */}

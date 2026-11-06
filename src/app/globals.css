@@ -968,30 +968,6 @@ html:not(.loaded) .SlicedText_iteration:nth-last-child(8) { animation-delay: 0.4
   }
 }
 
-/* Mobile Back Navigation Pill/Link (< 900px) */
-.MobileBackNav {
-  display: block;
-  margin-bottom: 0.75rem;
-}
-
-@media (min-width: 900px) {
-  .MobileBackNav {
-    display: none;
-  }
-}
-
-.MobileBackNav_link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 2.5rem;
-  padding: 0.25rem 0;
-  color: var(--color-accent);
-  text-decoration: none;
-  background: transparent;
-  border: 0;
-  font: inherit;
-  cursor: pointer;
-}
 
 @media (min-width: 900px) {
   .PageTitle_pageTitle {
@@ -1802,78 +1778,6 @@ body.Banner_page .Layout_contactWrapper {
   display: block;
   width: 100%;
   height: auto;
-}
-
-/* Back to projects — top-left over the image */
-.Banner_back {
-  position: absolute;
-  top: var(--indent);
-  left: var(--indent);
-  z-index: 3;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-height: 44px;
-  padding: 0 1rem 0 0.8rem;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 999px;
-  background-color: rgba(24, 20, 18, 0.36);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  color: #fff;
-  font-family: 'HelveticaNowDisplay-Medium', sans-serif;
-  font-size: 0.86rem;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-
-.Banner_back svg {
-  transition: transform 0.2s ease;
-}
-
-.Banner_back:hover {
-  background-color: rgba(24, 20, 18, 0.6);
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
-.Banner_back:hover svg {
-  transform: translateX(-2px);
-}
-
-.Banner_back:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 3px;
-}
-
-/* Small screens: the banner is too short to carry the button without
-   covering the wordmark, so it sits in its own row above the image. */
-@media (max-width: 899px) {
-  .Banner_hero {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .Banner_back {
-    position: static;
-    order: -1;
-    align-self: flex-start;
-    margin: var(--indent);
-    background-color: transparent;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    border-color: rgba(37, 37, 38, 0.22);
-    color: var(--color-default);
-  }
-
-  .Banner_back:hover {
-    background-color: rgba(37, 37, 38, 0.06);
-    border-color: rgba(37, 37, 38, 0.36);
-  }
-
-  .Banner_back:focus-visible {
-    outline-color: var(--color-accent);
-  }
 }
 
 /* Metadata — label + tags. Below the banner on small screens,
@@ -3523,44 +3427,6 @@ body.Banner_page .Layout_contactWrapper {
   grid-column: 1 / -1;
 }
 
-.End_footer {
-  grid-column: 1 / -1;
-  padding-top: 0.5rem;
-}
-
-.End_back {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  flex: none;
-  min-height: 44px;
-  padding: 0 1.1rem 0 0.85rem;
-  border: 1px solid rgba(37, 37, 38, 0.24);
-  border-radius: 999px;
-  color: var(--color-default);
-  font-size: 0.9rem;
-  text-decoration: none;
-  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.End_back svg {
-  transition: transform 0.2s ease;
-}
-
-.End_back:hover {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-.End_back:hover svg {
-  transform: translateX(-2px);
-}
-
-.End_back:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
-}
-
 .End_col {
   grid-column: 1 / -1;
   display: flex;
@@ -3640,4 +3506,103 @@ body.Banner_page .Layout_contactWrapper {
   transform: scaleX(0);
   transform-origin: 0 50%;
   will-change: transform;
+}
+
+/* Back to projects — the one way back on every project page, in place of
+   the site nav. Fixed top left; titles start below it. A light, blurred
+   fill keeps it readable over photos as well as the page. */
+.Back_wrap {
+  position: fixed;
+  top: var(--indent);
+  left: var(--indent);
+  z-index: 60;
+}
+
+@media (max-width: 899px) {
+  .Back_pill {
+    min-height: 36px;
+  }
+
+  .Contact_contact.Contact_noNav {
+    justify-content: flex-end;
+  }
+}
+
+/* Room for the pill above the case study title. */
+.Project_backSpace {
+  margin-top: calc(36px + var(--indent) * 1.75);
+}
+
+@media (min-width: 900px) {
+  .Project_backSpace {
+    margin-top: calc(44px + var(--indent) * 1.5);
+  }
+}
+
+/* Banner case studies: the image starts below the pill on phones, where
+   the banner is too short to carry it. On desktop it sits over the photo. */
+@media (max-width: 899px) {
+  body.Banner_page .Layout_pageWrapper {
+    padding-top: calc(36px + var(--indent) * 2);
+  }
+}
+
+.Back_pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0 1.1rem 0 0.85rem;
+  border: 1px solid rgba(37, 37, 38, 0.24);
+  border-radius: 999px;
+  background-color: rgba(241, 239, 235, 0.82);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--color-default);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.Back_pill svg {
+  transition: transform 0.2s ease;
+}
+
+.Back_pill:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.Back_pill:hover svg {
+  transform: translateX(-2px);
+}
+
+.Back_pill:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+/* Mobile Back Navigation Pill/Link (< 900px) */
+.MobileBackNav {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+@media (min-width: 900px) {
+  .MobileBackNav {
+    display: none;
+  }
+}
+
+.MobileBackNav_link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0.25rem 0;
+  color: var(--color-accent);
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
 }
