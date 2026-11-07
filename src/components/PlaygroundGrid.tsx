@@ -9,6 +9,7 @@ import { BodyCopyLarge, BodyCopyMedium, Title } from './Text';
 import { RevealMask } from './RevealMask';
 import { PageTitle } from './MarqueeHeading';
 import { SiteFooter } from './SiteFooter';
+import { BackToPlayground } from './BackToPlayground';
 
 function splitPlaygroundTitle(title: string): [string, string] {
   const clean = title.replace(/\s*—\s*/g, ' ').trim();
@@ -142,20 +143,17 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
   return (
     <LayoutGroup>
       <div id="projects" className="Projects_projects">
-        <div className="Spacer_spacer" />
+        <AnimatePresence>
+          {activeItem && (
+            <BackToPlayground show={true} onClick={closeExperiment} />
+          )}
+        </AnimatePresence>
 
-        {/* Mobile Top Back Link when viewing an experiment (< 900px) */}
-        {activeItem && (
-          <div className="MobileBackNav">
-            <button
-              type="button"
-              onClick={closeExperiment}
-              className="MobileBackNav_link"
-            >
-              <BodyCopyMedium as="span">← Back to playground</BodyCopyMedium>
-            </button>
-          </div>
-        )}
+        <div
+          className={`Spacer_spacer ${
+            activeItem ? 'Project_backSpace' : ''
+          }`.trim()}
+        />
 
         {/* Top-Left Title: "Playground" in grid view, or the selected piece's 2-line title when clicked */}
         <div key={activeItem ? activeItem.slug : 'playground-root'}>
@@ -430,13 +428,10 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
                   </ul>
                 </div>
 
-                <div className="List_listWrapper Project_link">
-                  <ul>
-                    {activeItem.embed && isHtmlSrc(activeItem.embed) && (
-                      <li
-                        className="List_listItem"
-                        style={{ marginBottom: '0.65em' }}
-                      >
+                {activeItem.embed && isHtmlSrc(activeItem.embed) && (
+                  <div className="List_listWrapper Project_link">
+                    <ul>
+                      <li className="List_listItem">
                         <a
                           href={activeItem.embed}
                           target="_blank"
@@ -454,27 +449,9 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
                           </BodyCopyMedium>
                         </a>
                       </li>
-                    )}
-                    <li className="List_listItem">
-                      <button
-                        type="button"
-                        onClick={closeExperiment}
-                        className="List_link"
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <BodyCopyMedium>
-                          <RevealMask
-                            show={true}
-                            delay={0.42}
-                            className="List_label"
-                          >
-                            Back to playground
-                          </RevealMask>
-                        </BodyCopyMedium>
-                      </button>
-                    </li>
-                  </ul>
-                </div>
+                    </ul>
+                  </div>
+                )}
               </div>
 
               {/* Right Column (Desktop >= 900px): Scaled Media Stage */}
