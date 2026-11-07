@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import type { PlaygroundItem } from '@/content/getPlayground';
 import { easeOutExpo } from './easings';
 import { BodyCopyLarge, BodyCopyMedium, Title } from './Text';
@@ -29,6 +30,173 @@ function isImageSrc(src: string) {
 
 function isHtmlSrc(src: string) {
   return /\.html(\?.*)?$/i.test(src);
+}
+
+function GamePlayerFrame({ item }: { item: PlaygroundItem }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isCssFullscreen, setIsCssFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      const active = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement
+      );
+      setIsFullscreen(active);
+      if (!active) {
+        setIsCssFullscreen(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    document.addEventListener('webkitfullscreenchange', handleFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFsChange);
+      document.removeEventListener('webkitfullscreenchange', handleFsChange);
+    };
+  }, []);
+
+  const toggleFullscreen = async () => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (isCssFullscreen) {
+      setIsCssFullscreen(false);
+      setIsFullscreen(false);
+      return;
+    }
+
+    if (
+      document.fullscreenElement ||
+      (document as any).webkitFullscreenElement
+    ) {
+      try {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      setIsFullscreen(false);
+      return;
+    }
+
+    try {
+      if (container.requestFullscreen) {
+        await container.requestFullscreen();
+        setIsFullscreen(true);
+      } else if ((container as any).webkitRequestFullscreen) {
+        (container as any).webkitRequestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        setIsCssFullscreen(true);
+        setIsFullscreen(true);
+      }
+    } catch {
+      setIsCssFullscreen(true);
+      setIsFullscreen(true);
+    }
+  };
+
+  const isHtml = item.embed && isHtmlSrc(item.embed);
+  const isVideo = item.embed && isVideoSrc(item.embed);
+  const isImage = item.embed && isImageSrc(item.embed);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`GamePlayer_frame ${
+        isCssFullscreen ? 'GamePlayer_cssFullscreen' : ''
+      } ${isFullscreen ? 'GamePlayer_isFullscreen' : ''}`}
+    >
+      <div className="GamePlayer_topBar">
+        <div className="GamePlayer_topBarLeft">
+          <span className="GamePlayer_liveDot" />
+          <span className="GamePlayer_liveBadge">
+            {isHtml ? 'INTERACTIVE 3D' : isVideo ? 'VIDEO' : 'STILL'}
+          </span>
+          <span className="GamePlayer_itemTitle">{item.title}</span>
+        </div>
+
+        {isHtml && (
+          <div className="GamePlayer_controlsHint">
+            WASD / Arrows to walk · Space to ink
+          </div>
+        )}
+
+        <div className="GamePlayer_topBarRight">
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className="GamePlayer_fsBtn"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          >
+            {isFullscreen ? (
+              <>
+                <Minimize2 size={13} strokeWidth={2.2} />
+                <span>Exit Fullscreen</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 size={13} strokeWidth={2.2} />
+                <span>Fullscreen</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div className="GamePlayer_screen">
+        {isVideo ? (
+          <video
+            src={item.embed}
+            autoPlay
+            loop
+            muted
+            playsInline
+            controls
+            className="GamePlayer_media"
+          />
+        ) : isImage ? (
+          <img
+            src={item.embed}
+            alt={item.title}
+            className="GamePlayer_media"
+          />
+        ) : item.embed ? (
+          <iframe
+            src={item.embed}
+            title={item.title}
+            allow="accelerometer; autoplay; fullscreen; gyroscope"
+            className="GamePlayer_media"
+          />
+        ) : (
+          <img
+            src={item.thumbnail}
+            alt={item.title}
+            className="GamePlayer_media"
+          />
+        )}
+
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          className="GamePlayer_screenFsBtn"
+          title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+        >
+          {isFullscreen ? (
+            <Minimize2 size={15} strokeWidth={2.2} />
+          ) : (
+            <Maximize2 size={15} strokeWidth={2.2} />
+          )}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
@@ -165,7 +333,11 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
         </div>
 
         {/* Top-Right Counter */}
-        <div className="ProjectsList_progressWrapper">
+        <div
+          className={`ProjectsList_progressWrapper ${
+            activeItem ? 'Playground_progressWrapper' : ''
+          }`}
+        >
           <div className="ProjectsList_current">
             <RevealMask show={true}>
               <Title as="span" className="ProjectsList_currentLabel">
@@ -268,45 +440,12 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.35 }}
             >
-              {/* Mobile Media View (< 900px): Placed immediately below the title for instant visual feedback */}
+              {/* Mobile Media View (< 900px): Embedded Game Player Frame */}
               <div
                 className="min-[900px]:hidden"
                 style={{ marginTop: 'max(1.25rem, 2vw)' }}
               >
-                <div className="MediaGrid_mediaContent">
-                  {activeItem.embed && isVideoSrc(activeItem.embed) ? (
-                    <video
-                      src={activeItem.embed}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      controls
-                    />
-                  ) : activeItem.embed && isImageSrc(activeItem.embed) ? (
-                    <img src={activeItem.embed} alt={activeItem.title} />
-                  ) : activeItem.embed ? (
-                    <iframe
-                      src={activeItem.embed}
-                      title={activeItem.title}
-                      style={{
-                        position: 'absolute',
-                        inset: 0,
-                        width: '100%',
-                        height: '100%',
-                        border: 0,
-                        display: 'block',
-                        zIndex: 2,
-                      }}
-                      allow="accelerometer; autoplay; fullscreen; gyroscope"
-                    />
-                  ) : (
-                    <img
-                      src={activeItem.thumbnail}
-                      alt={activeItem.title}
-                    />
-                  )}
-                </div>
+                <GamePlayerFrame item={activeItem} />
 
                 {/* Mobile horizontal touch-scrollable thumbnail strip */}
                 <div className="PlaygroundMobile_thumbStrip">
@@ -357,8 +496,8 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
                 </div>
               </div>
 
-              {/* Left Column: Clean Stefan-formatted metadata */}
-              <div className="Project_content">
+              {/* Left Column: Clean Stefan-formatted metadata (Year removed) */}
+              <div className="Project_content Playground_detailContent">
                 <div className="List_listWrapper Project_role">
                   <BodyCopyLarge className="List_listTitle">
                     <RevealMask show={true} delay={0.08}>
@@ -370,23 +509,6 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
                       <BodyCopyMedium>
                         <RevealMask show={true} delay={0.14}>
                           {activeItem.tech.join(' / ')}
-                        </RevealMask>
-                      </BodyCopyMedium>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="List_listWrapper Project_recognitions">
-                  <BodyCopyLarge className="List_listTitle">
-                    <RevealMask show={true} delay={0.16}>
-                      Year
-                    </RevealMask>
-                  </BodyCopyLarge>
-                  <ul>
-                    <li className="List_listItem">
-                      <BodyCopyMedium>
-                        <RevealMask show={true} delay={0.22}>
-                          {`${activeItem.year} — #${activeItem.displayNumber}`}
                         </RevealMask>
                       </BodyCopyMedium>
                     </li>
@@ -427,99 +549,24 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
                       )}
                   </ul>
                 </div>
-
-                {activeItem.embed && isHtmlSrc(activeItem.embed) && (
-                  <div className="List_listWrapper Project_link">
-                    <ul>
-                      <li className="List_listItem">
-                        <a
-                          href={activeItem.embed}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="List_link"
-                        >
-                          <BodyCopyMedium>
-                            <RevealMask
-                              show={true}
-                              delay={0.39}
-                              className="List_label"
-                            >
-                              Launch fullscreen ↗
-                            </RevealMask>
-                          </BodyCopyMedium>
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                )}
               </div>
 
-              {/* Right Column (Desktop >= 900px): Scaled Media Stage */}
-              <div
-                className="hidden min-[900px]:block"
-                style={{
-                  position: 'fixed',
-                  top: 'calc(14vh + 1vw)',
-                  left: 'calc(var(--col) * 6 + var(--indent) * 5)',
-                  width: 'calc(var(--col) * 5 + var(--indent) * 6)',
-                  zIndex: 15,
-                }}
-              >
-                <motion.div
-                  layoutId={`playground-media-${activeItem.slug}`}
-                  transition={{ duration: 0.7, ease: easeOutExpo }}
-                  className="MediaGrid_mediaContent"
-                  style={{
-                    backgroundColor: '#252526',
-                    boxShadow: '0 20px 50px rgba(0,0,0,0.08)',
-                  }}
-                >
-                  {activeItem.embed && isVideoSrc(activeItem.embed) ? (
-                    <video
-                      src={activeItem.embed}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      controls
-                    />
-                  ) : activeItem.embed && isImageSrc(activeItem.embed) ? (
-                    <img src={activeItem.embed} alt={activeItem.title} />
-                  ) : activeItem.embed ? (
-                    <iframe
-                      src={activeItem.embed}
-                      title={activeItem.title}
-                      style={{
-                        position: 'absolute',
-                        inset: 0,
-                        width: '100%',
-                        height: '100%',
-                        border: 0,
-                        display: 'block',
-                        zIndex: 2,
-                      }}
-                      allow="accelerometer; autoplay; fullscreen; gyroscope"
-                    />
-                  ) : (
-                    <img
-                      src={activeItem.thumbnail}
-                      alt={activeItem.title}
-                    />
-                  )}
-                </motion.div>
+              {/* Right Column (Desktop >= 900px): Embedded Game Player Frame (60%-70% of viewport width) */}
+              <div className="hidden min-[900px]:block Playground_playerStage">
+                <GamePlayerFrame item={activeItem} />
 
-                {/* Thumbnail switcher strip below the scaled right-hand media */}
+                {/* Thumbnail switcher strip below the player */}
                 <div
                   style={{
-                    marginTop: 'var(--indent)',
+                    marginTop: 'calc(var(--indent) * 0.75)',
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(5, 1fr)',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
                     gap: 'calc(var(--indent) * 0.5)',
+                    maxWidth: '460px',
                   }}
                 >
                   {items
                     .filter((i) => i.slug !== activeItem.slug)
-                    .slice(0, 5)
                     .map((thumbItem) => (
                       <div
                         key={thumbItem.slug}
@@ -527,14 +574,18 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
                         className="MediaGrid_mediaContent"
                         style={{
                           cursor: 'pointer',
-                          opacity: 0.55,
-                          transition: 'opacity 0.25s ease',
+                          opacity: 0.6,
+                          borderRadius: '6px',
+                          overflow: 'hidden',
+                          transition: 'opacity 0.25s ease, transform 0.2s ease',
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.opacity = '1';
+                          e.currentTarget.style.transform = 'translateY(-2px)';
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.opacity = '0.55';
+                          e.currentTarget.style.opacity = '0.6';
+                          e.currentTarget.style.transform = 'translateY(0)';
                         }}
                       >
                         {isVideoSrc(thumbItem.thumbnail) ? (
