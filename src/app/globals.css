@@ -896,7 +896,7 @@ html:not(.loaded) .SlicedText_iteration:nth-last-child(8) { animation-delay: 0.4
 }
 
 .HomeHero_title .HomeHero_word:not(:last-child) {
-  margin-right: 0.1em;
+  margin-right: 0.35em;
 }
 
 .HomeHero_content {

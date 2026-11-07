@@ -366,8 +366,8 @@ export function HomeHero() {
                 <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <SlicedText
                     text={word}
-                    from={idx === 0 ? '11%' : '0%'}
-                    iterations={idx === 0 ? 5 : 7}
+                    from="0%"
+                    iterations={5}
                     show={true}
                     repeat={true}
                   />
