@@ -20,10 +20,6 @@ function isVideoSrc(src: string) {
   return /\.(mp4|webm|mov)$/i.test(src);
 }
 
-function isImageSrc(src: string) {
-  return /\.(png|jpe?g|webp|gif|avif|svg)$/i.test(src);
-}
-
 export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
   const router = useRouter();
 
@@ -444,18 +440,7 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
         >
           {orderedProjects.map((project, idx) => {
             const isActive = activeProject?.slug === project.slug;
-            // Embeds (e.g. YouTube links) can't render as a preview card.
-            const previewable = (project.media || []).filter(
-              (m) => isVideoSrc(m) || isImageSrc(m),
-            );
-            const firstVideo = previewable.find((m) => isVideoSrc(m));
-            const previewItems = project.banner
-              ? [project.thumbnail]
-              : firstVideo
-              ? [project.heroMedia || project.thumbnail, firstVideo]
-              : (previewable.length > 0
-                  ? previewable.slice(0, 2)
-                  : [project.thumbnail]);
+            const mediaSrc = project.heroMedia || project.thumbnail;
 
             return (
               <div
@@ -473,40 +458,34 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
                     mediaRefs.current[idx] = el;
                   }}
                   style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 'calc(var(--indent) * 1.5)',
                     willChange: 'transform',
                   }}
                 >
-                  {previewItems.map((mediaSrc, mIdx) => (
-                    <Link
-                      key={`${project.slug}-${mIdx}`}
-                      href={`/work/${project.slug}`}
-                      scroll={false}
-                      style={{ display: 'block', textDecoration: 'none' }}
+                  <Link
+                    href={`/work/${project.slug}`}
+                    scroll={false}
+                    style={{ display: 'block', textDecoration: 'none' }}
+                  >
+                    <div
+                      className="MediaGrid_mediaContent"
+                      style={{
+                        backgroundColor:
+                          project.colors?.[0] || 'var(--color-default)',
+                      }}
                     >
-                      <div
-                        className="MediaGrid_mediaContent"
-                        style={{
-                          backgroundColor:
-                            project.colors?.[mIdx] || 'var(--color-default)',
-                        }}
-                      >
-                        {isVideoSrc(mediaSrc) ? (
-                          <video
-                            src={mediaSrc}
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                          />
-                        ) : (
-                          <img src={mediaSrc} alt={project.title} />
-                        )}
-                      </div>
-                    </Link>
-                  ))}
+                      {isVideoSrc(mediaSrc) ? (
+                        <video
+                          src={mediaSrc}
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                        />
+                      ) : (
+                        <img src={mediaSrc} alt={project.title} />
+                      )}
+                    </div>
+                  </Link>
                 </div>
               </div>
             );
