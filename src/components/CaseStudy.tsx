@@ -355,13 +355,14 @@ export function CaseStudy({
     ? `${contextMeta.fullName} (${project.year})`
     : String(project.year);
 
-  // Matches Stefan's "Role" section: role line + tools/mediums line
-  const roleItems = [
-    project.role,
-    ...(project.tools && project.tools.length > 0
+  // Matches Stefan's "Role" section
+  const roleItems = [project.role];
+
+  // Separate "Tools" section
+  const toolsItems =
+    project.tools && project.tools.length > 0
       ? [project.tools.join(' / ')]
-      : []),
-  ];
+      : [];
 
   // Matches Stefan's "Awards & Recognitions" section: context + collaborators
   const contextItems = [
@@ -400,11 +401,20 @@ export function CaseStudy({
           className="Project_role"
         />
 
+        {toolsItems.length > 0 && (
+          <ListSection
+            title="Tools"
+            items={toolsItems}
+            delay={0.16}
+            className="Project_tools"
+          />
+        )}
+
         {!project.hideContext && (
           <ListSection
             title="Context & Scope"
             items={contextItems}
-            delay={0.2}
+            delay={0.22}
             className="Project_recognitions"
           />
         )}
@@ -413,7 +423,7 @@ export function CaseStudy({
           <ListSection
             title="Summary"
             items={project.summary}
-            delay={0.3}
+            delay={0.28}
             className="Project_summary"
           />
         )}
