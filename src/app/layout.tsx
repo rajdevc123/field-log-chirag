@@ -4,6 +4,7 @@ import './globals.css';
 import { siteConfig } from '@/content/site';
 import { StefanChrome } from '@/components/StefanChrome';
 import { UnderConstructionGate } from '@/components/UnderConstructionGate';
+import { GoatCounter } from '@/components/GoatCounter';
 
 const mono = JetBrains_Mono({
   subsets: ['latin'],
@@ -47,6 +48,7 @@ export default function RootLayout({
         <UnderConstructionGate>
           <StefanChrome>{children}</StefanChrome>
         </UnderConstructionGate>
+        <GoatCounter />
       </body>
     </html>
   );
