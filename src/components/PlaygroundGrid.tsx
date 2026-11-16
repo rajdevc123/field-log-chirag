@@ -9,7 +9,6 @@ import { easeOutExpo } from './easings';
 import { BodyCopyLarge, BodyCopyMedium, Title } from './Text';
 import { RevealMask } from './RevealMask';
 import { PageTitle } from './MarqueeHeading';
-import { SiteFooter } from './SiteFooter';
 import { BackToPlayground } from './BackToPlayground';
 
 function splitPlaygroundTitle(title: string): [string, string] {
@@ -32,7 +31,7 @@ function isHtmlSrc(src: string) {
   return /\.html(\?.*)?$/i.test(src);
 }
 
-function GamePlayerFrame({ item }: { item: PlaygroundItem }) {
+function PlaygroundMediaViewer({ item }: { item: PlaygroundItem }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isCssFullscreen, setIsCssFullscreen] = useState(false);
@@ -107,94 +106,72 @@ function GamePlayerFrame({ item }: { item: PlaygroundItem }) {
   return (
     <div
       ref={containerRef}
-      className={`GamePlayer_frame ${
-        isCssFullscreen ? 'GamePlayer_cssFullscreen' : ''
-      } ${isFullscreen ? 'GamePlayer_isFullscreen' : ''}`}
+      className={`Playground_mediaCard ${
+        isCssFullscreen ? 'Playground_cssFullscreen' : ''
+      }`}
     >
-      <div className="GamePlayer_topBar">
-        <div className="GamePlayer_topBarLeft">
-          <span className="GamePlayer_liveDot" />
-          <span className="GamePlayer_liveBadge">
-            {isHtml ? 'INTERACTIVE 3D' : isVideo ? 'VIDEO' : 'STILL'}
-          </span>
-          <span className="GamePlayer_itemTitle">{item.title}</span>
-        </div>
-
-        {isHtml && (
-          <div className="GamePlayer_controlsHint">
-            WASD / Arrows to walk · Space to ink
+      {isHtml ? (
+        <div className="Playground_iframeContainer">
+          <div className="Playground_interactiveBar">
+            <span className="Playground_interactiveHint">
+              Interactive 3D · Click to Play
+            </span>
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="Playground_actionBtn"
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+              aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 size={13} strokeWidth={2.2} />
+                  <span>Exit</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 size={13} strokeWidth={2.2} />
+                  <span>Fullscreen</span>
+                </>
+              )}
+            </button>
           </div>
-        )}
-
-        <div className="GamePlayer_topBarRight">
-          <button
-            type="button"
-            onClick={toggleFullscreen}
-            className="GamePlayer_fsBtn"
-            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-            aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-          >
-            {isFullscreen ? (
-              <>
-                <Minimize2 size={13} strokeWidth={2.2} />
-                <span>Exit Fullscreen</span>
-              </>
-            ) : (
-              <>
-                <Maximize2 size={13} strokeWidth={2.2} />
-                <span>Fullscreen</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      <div className="GamePlayer_screen">
-        {isVideo ? (
-          <video
-            src={item.embed}
-            autoPlay
-            loop
-            muted
-            playsInline
-            controls
-            className="GamePlayer_media"
-          />
-        ) : isImage ? (
-          <img
-            src={item.embed}
-            alt={item.title}
-            className="GamePlayer_media"
-          />
-        ) : item.embed ? (
           <iframe
             src={item.embed}
             title={item.title}
             allow="accelerometer; autoplay; fullscreen; gyroscope"
-            className="GamePlayer_media"
+            className="Playground_iframeElement"
           />
-        ) : (
+        </div>
+      ) : isVideo ? (
+        <div className="Playground_mediaContainer">
+          <video
+            src={item.embed}
+            autoPlay
+            loop
+            muted={false}
+            playsInline
+            controls
+            className="Playground_videoElement"
+          />
+        </div>
+      ) : isImage ? (
+        <div className="Playground_mediaContainer">
+          <img
+            src={item.embed}
+            alt={item.title}
+            className="Playground_imageElement"
+          />
+        </div>
+      ) : (
+        <div className="Playground_mediaContainer">
           <img
             src={item.thumbnail}
             alt={item.title}
-            className="GamePlayer_media"
+            className="Playground_imageElement"
           />
-        )}
-
-        <button
-          type="button"
-          onClick={toggleFullscreen}
-          className="GamePlayer_screenFsBtn"
-          title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-          aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-        >
-          {isFullscreen ? (
-            <Minimize2 size={15} strokeWidth={2.2} />
-          ) : (
-            <Maximize2 size={15} strokeWidth={2.2} />
-          )}
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -225,9 +202,6 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
   const currentStr = focusedItem ? focusedItem.displayNumber : '01';
 
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
-  const overscrollUpRef = useRef(0);
-  const overscrollDownRef = useRef(0);
-  const navigatedRef = useRef(false);
 
   const openExperiment = (slug: string) => {
     setSelectedSlug(slug);
@@ -238,7 +212,7 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
     setSelectedSlug(null);
   };
 
-  // Escape key closes selected piece back to grid
+  // Escape key closes selected piece back to grid; Arrow keys cycle pieces
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && selectedSlug) {
@@ -361,7 +335,7 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
 
         <AnimatePresence mode="wait">
           {!activeItem ? (
-            /* STATE 1: Clean Thumbnail Grid Only (no surrounding text clutter on desktop; scannable labels on mobile) */
+            /* STATE 1: Clean Thumbnail Grid */
             <motion.section
               key="playground-grid"
               initial={{ opacity: 0 }}
@@ -432,200 +406,132 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
               ))}
             </motion.section>
           ) : (
-            /* STATE 2: Selected Piece — Data on Left, Scaled Media on Right */
+            /* STATE 2: Option B — In-Flow Dual-Column (Data on Left, Media on Right) */
             <motion.div
               key={`playground-detail-${activeItem.slug}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35 }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.35, ease: easeOutExpo }}
             >
-              {/* Mobile Media View (< 900px): Embedded Game Player Frame */}
-              <div
-                className="min-[900px]:hidden"
-                style={{ marginTop: 'max(1.25rem, 2vw)' }}
-              >
-                <GamePlayerFrame item={activeItem} />
-
-                {/* Mobile horizontal touch-scrollable thumbnail strip */}
-                <div className="PlaygroundMobile_thumbStrip">
-                  {items
-                    .filter((i) => i.slug !== activeItem.slug)
-                    .map((thumbItem) => (
-                      <button
-                        key={thumbItem.slug}
-                        type="button"
-                        onClick={() => openExperiment(thumbItem.slug)}
-                        className="PlaygroundMobile_thumbButton"
-                        aria-label={thumbItem.title}
-                      >
-                        <div className="MediaGrid_mediaContent">
-                          {isVideoSrc(thumbItem.thumbnail) ? (
-                            <video
-                              src={thumbItem.thumbnail}
-                              autoPlay
-                              muted
-                              loop
-                              playsInline
-                            />
-                          ) : isHtmlSrc(thumbItem.thumbnail) ? (
-                            <iframe
-                              src={thumbItem.thumbnail}
-                              title={thumbItem.title}
-                              tabIndex={-1}
-                              style={{
-                                position: 'absolute',
-                                inset: 0,
-                                width: '100%',
-                                height: '100%',
-                                border: 0,
-                                display: 'block',
-                                pointerEvents: 'none',
-                                zIndex: 2,
-                              }}
-                            />
-                          ) : (
-                            <img
-                              src={thumbItem.thumbnail}
-                              alt={thumbItem.title}
-                            />
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                </div>
-              </div>
-
-              {/* Left Column: Clean Stefan-formatted metadata (Year removed) */}
-              <div className="Project_content Playground_detailContent">
-                <div className="List_listWrapper Project_role">
-                  <BodyCopyLarge className="List_listTitle">
-                    <RevealMask show={true} delay={0.08}>
-                      Medium & Tools
-                    </RevealMask>
-                  </BodyCopyLarge>
-                  <ul>
-                    <li className="List_listItem">
-                      <BodyCopyMedium>
-                        <RevealMask show={true} delay={0.14}>
-                          {activeItem.tech.join(' / ')}
-                        </RevealMask>
-                      </BodyCopyMedium>
-                    </li>
-                  </ul>
-                </div>
-
-                <div
-                  className="List_listWrapper Project_summary"
-                  style={{ whiteSpace: 'normal', maxWidth: '30rem' }}
-                >
-                  <BodyCopyLarge className="List_listTitle">
-                    <RevealMask show={true} delay={0.24}>
-                      Summary
-                    </RevealMask>
-                  </BodyCopyLarge>
-                  <ul>
-                    {activeItem.note && (
+              <div className="Playground_detailLayout">
+                {/* Left Column: Metadata */}
+                <aside className="Playground_detailSidebar">
+                  <div className="List_listWrapper Project_role">
+                    <BodyCopyLarge className="List_listTitle">
+                      <RevealMask show={true} delay={0.08}>
+                        Medium & Tools
+                      </RevealMask>
+                    </BodyCopyLarge>
+                    <ul>
                       <li className="List_listItem">
                         <BodyCopyMedium>
-                          <RevealMask show={true} delay={0.3}>
-                            {activeItem.note}
+                          <RevealMask show={true} delay={0.14}>
+                            {activeItem.tech.join(' / ')}
                           </RevealMask>
                         </BodyCopyMedium>
                       </li>
-                    )}
-                    {activeItem.content &&
-                      activeItem.content !== activeItem.note && (
-                        <li
-                          className="List_listItem"
-                          style={{ marginTop: '0.5em' }}
-                        >
+                    </ul>
+                  </div>
+
+                  <div
+                    className="List_listWrapper Project_summary"
+                    style={{ whiteSpace: 'normal', maxWidth: '32rem' }}
+                  >
+                    <BodyCopyLarge className="List_listTitle">
+                      <RevealMask show={true} delay={0.24}>
+                        Summary
+                      </RevealMask>
+                    </BodyCopyLarge>
+                    <ul>
+                      {activeItem.note && (
+                        <li className="List_listItem">
                           <BodyCopyMedium>
-                            <RevealMask show={true} delay={0.36}>
-                              {activeItem.content}
+                            <RevealMask show={true} delay={0.3}>
+                              {activeItem.note}
                             </RevealMask>
                           </BodyCopyMedium>
                         </li>
                       )}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Right Column (Desktop >= 900px): Embedded Game Player Frame (60%-70% of viewport width) */}
-              <div className="hidden min-[900px]:block Playground_playerStage">
-                <GamePlayerFrame item={activeItem} />
-
-                {/* Thumbnail switcher strip below the player */}
-                <div
-                  style={{
-                    marginTop: 'calc(var(--indent) * 0.75)',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                    gap: 'calc(var(--indent) * 0.5)',
-                    maxWidth: '460px',
-                  }}
-                >
-                  {items
-                    .filter((i) => i.slug !== activeItem.slug)
-                    .map((thumbItem) => (
-                      <div
-                        key={thumbItem.slug}
-                        onClick={() => openExperiment(thumbItem.slug)}
-                        className="MediaGrid_mediaContent"
-                        style={{
-                          cursor: 'pointer',
-                          opacity: 0.6,
-                          borderRadius: '6px',
-                          overflow: 'hidden',
-                          transition: 'opacity 0.25s ease, transform 0.2s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.opacity = '1';
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.opacity = '0.6';
-                          e.currentTarget.style.transform = 'translateY(0)';
-                        }}
-                      >
-                        {isVideoSrc(thumbItem.thumbnail) ? (
-                          <video
-                            src={thumbItem.thumbnail}
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                          />
-                        ) : isHtmlSrc(thumbItem.thumbnail) ? (
-                          <iframe
-                            src={thumbItem.thumbnail}
-                            title={thumbItem.title}
-                            tabIndex={-1}
-                            style={{
-                              position: 'absolute',
-                              inset: 0,
-                              width: '100%',
-                              height: '100%',
-                              border: 0,
-                              display: 'block',
-                              pointerEvents: 'none',
-                              zIndex: 2,
-                            }}
-                          />
-                        ) : (
-                          <img
-                            src={thumbItem.thumbnail}
-                            alt={thumbItem.title}
-                          />
+                      {activeItem.content &&
+                        activeItem.content !== activeItem.note && (
+                          <li
+                            className="List_listItem"
+                            style={{ marginTop: '0.75em' }}
+                          >
+                            <BodyCopyMedium>
+                              <RevealMask show={true} delay={0.36}>
+                                {activeItem.content}
+                              </RevealMask>
+                            </BodyCopyMedium>
+                          </li>
                         )}
-                      </div>
-                    ))}
-                </div>
+                    </ul>
+                  </div>
+                </aside>
+
+                {/* Right Column: Clean Media Viewport + Switcher */}
+                <section className="Playground_mediaColumn">
+                  <PlaygroundMediaViewer item={activeItem} />
+
+                  {/* Switcher Strip of other experiments */}
+                  <div className="Playground_switcherSection">
+                    <div className="Playground_switcherLabel">Switch Piece</div>
+                    <div className="Playground_switcherGrid">
+                      {items.map((other) => {
+                        const isCurrent = other.slug === activeItem.slug;
+                        return (
+                          <button
+                            key={other.slug}
+                            type="button"
+                            onClick={() => openExperiment(other.slug)}
+                            className={`Playground_switcherCard ${
+                              isCurrent ? 'Playground_switcherCardActive' : ''
+                            }`}
+                            aria-label={other.title}
+                          >
+                            <div className="Playground_switcherThumb">
+                              {isVideoSrc(other.thumbnail) ? (
+                                <video
+                                  src={other.thumbnail}
+                                  autoPlay
+                                  muted
+                                  loop
+                                  playsInline
+                                />
+                              ) : isHtmlSrc(other.thumbnail) ? (
+                                <iframe
+                                  src={other.thumbnail}
+                                  tabIndex={-1}
+                                  title={other.title}
+                                  style={{ pointerEvents: 'none' }}
+                                />
+                              ) : (
+                                <img
+                                  src={other.thumbnail}
+                                  alt={other.title}
+                                />
+                              )}
+                            </div>
+                            <div className="Playground_switcherCardMeta">
+                              <span className="Playground_switcherNum">
+                                {other.displayNumber}
+                              </span>
+                              <span className="Playground_switcherTitle">
+                                {other.title}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </section>
               </div>
 
-              {/* Next Piece Footer at Bottom Right */}
+              {/* In-flow Next Piece Footer */}
               {nextItem && (
-                <footer className="Project_footer Project_show">
+                <footer className="Project_footer Project_show Playground_footerInFlow">
                   <div className="Project_footerLinkWrapper">
                     <button
                       type="button"
