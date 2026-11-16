@@ -216,6 +216,15 @@ export function CaseStudy({
 }) {
   const router = useRouter();
   const [showNextCta, setShowNextCta] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(true);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 900px)');
+    setIsDesktop(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   const trackRef = useRef<HTMLDivElement | null>(null);
   const frameRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -266,6 +275,7 @@ export function CaseStudy({
     let rafId = 0;
     let lastTime = performance.now();
     const mountTime = Date.now();
+    let settled = false;
 
     const tick = (now: number) => {
       const dt = Math.min((now - lastTime) / 1000, 0.1);
@@ -278,27 +288,31 @@ export function CaseStudy({
       }
 
       const diff = targetYRef.current - currentYRef.current;
-      const lerp = 1 - Math.pow(1 - 0.08, dt * 60);
-      currentYRef.current += diff * lerp;
-      const velocity = diff * lerp;
+      if (Math.abs(diff) > 0.05 || !settled) {
+        settled = Math.abs(diff) <= 0.05;
+        const lerp = 1 - Math.pow(1 - 0.08, dt * 60);
+        currentYRef.current += diff * lerp;
+        const velocity = settled ? 0 : diff * lerp;
 
-      if (trackRef.current) {
-        trackRef.current.style.transform = `translate3d(0, ${-currentYRef.current}px, 0)`;
+        if (trackRef.current) {
+          trackRef.current.style.transform = `translate3d(0, ${-currentYRef.current}px, 0)`;
+        }
+
+        // Subtle parallax distortion on frames while scrolling
+        for (let i = 0; i < frameRefs.current.length; i++) {
+          const frame = frameRefs.current[i];
+          if (!frame) continue;
+          const skew = settled ? 0 : Math.max(-2.5, Math.min(2.5, velocity * 0.04));
+          frame.style.transform = skew ? `skewY(${skew}deg)` : '';
+        }
+
+        const progress =
+          maxScrollRef.current > 0
+            ? currentYRef.current / maxScrollRef.current
+            : 1;
+        const nextShow = progress > 0.65 || maxScrollRef.current <= 10;
+        setShowNextCta((prev) => (prev !== nextShow ? nextShow : prev));
       }
-
-      // Subtle parallax distortion on frames while scrolling
-      for (let i = 0; i < frameRefs.current.length; i++) {
-        const frame = frameRefs.current[i];
-        if (!frame) continue;
-        const skew = Math.max(-2.5, Math.min(2.5, velocity * 0.04));
-        frame.style.transform = `skewY(${skew}deg)`;
-      }
-
-      const progress =
-        maxScrollRef.current > 0
-          ? currentYRef.current / maxScrollRef.current
-          : 1;
-      setShowNextCta(progress > 0.65 || maxScrollRef.current <= 10);
 
       rafId = requestAnimationFrame(tick);
     };
@@ -437,76 +451,87 @@ export function CaseStudy({
         )}
       </div>
 
-      {/* Mobile/Tablet MediaGrid (< 900px) */}
-      <MobileMediaStack
-        media={mediaList}
-        colors={project.colors}
-        className="MediaGrid_mobileOnly"
-      />
+      {/* Mobile/Tablet MediaGrid (< 900px) — only mounted on mobile to avoid duplicate video range locks */}
+      {!isDesktop && (
+        <MobileMediaStack
+          media={mediaList}
+          colors={project.colors}
+          className="MediaGrid_mobileOnly"
+        />
+      )}
 
       {/* Desktop Right-Column Media Stack (exact Stefan columns 7-12, pure 16:9 frames) */}
-      <div
-        className="hidden min-[900px]:block"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 'calc(var(--col) * 6 + var(--indent) * 5)',
-          width: 'calc(var(--col) * 5 + var(--indent) * 6)',
-          height: '100vh',
-          overflow: 'hidden',
-          zIndex: 15,
-        }}
-      >
+      {isDesktop && (
         <div
-          ref={trackRef}
+          className="hidden min-[900px]:block"
           style={{
-            paddingTop: 'var(--indent)',
-            paddingBottom: 'calc(var(--indent) * 8)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'calc(var(--indent) * 2)',
-            willChange: 'transform',
+            position: 'fixed',
+            top: 0,
+            left: 'calc(var(--col) * 6 + var(--indent) * 5)',
+            width: 'calc(var(--col) * 5 + var(--indent) * 6)',
+            height: '100vh',
+            overflow: 'hidden',
+            zIndex: 15,
           }}
         >
-          {mediaList.map((src, i) => (
-            <div
-              key={i}
-              ref={(el) => {
-                frameRefs.current[i] = el;
-              }}
-              className="MediaGrid_mediaContent"
-              style={{
-                backgroundColor:
-                  project.colors?.[i % (project.colors?.length || 1)] ||
-                  '#252526',
-                willChange: 'transform',
-              }}
-            >
-              {isYouTubeSrc(src) ? (
-                <iframe
-                  src={getYouTubeEmbedUrl(src)}
-                  title={`${project.title} video ${i + 1}`}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    border: 0,
-                    display: 'block',
-                    zIndex: 2,
-                  }}
-                />
-              ) : isVideoSrc(src) ? (
-                <video src={src} autoPlay muted loop playsInline />
-              ) : (
-                <img src={src} alt={project.title} />
-              )}
-            </div>
-          ))}
+          <div
+            ref={trackRef}
+            style={{
+              paddingTop: 'var(--indent)',
+              paddingBottom: 'calc(var(--indent) * 8)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'calc(var(--indent) * 2)',
+              willChange: 'transform',
+            }}
+          >
+            {mediaList.map((src, i) => (
+              <div
+                key={i}
+                ref={(el) => {
+                  frameRefs.current[i] = el;
+                }}
+                className="MediaGrid_mediaContent"
+                style={{
+                  backgroundColor:
+                    project.colors?.[i % (project.colors?.length || 1)] ||
+                    '#252526',
+                  willChange: 'transform',
+                }}
+              >
+                {isYouTubeSrc(src) ? (
+                  <iframe
+                    src={getYouTubeEmbedUrl(src)}
+                    title={`${project.title} video ${i + 1}`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      border: 0,
+                      display: 'block',
+                      zIndex: 2,
+                    }}
+                  />
+                ) : isVideoSrc(src) ? (
+                  <video
+                    src={src}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                  />
+                ) : (
+                  <img src={src} alt={project.title} loading="lazy" />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Next Project Footer (exact Stefan Project_footer) */}
       <footer

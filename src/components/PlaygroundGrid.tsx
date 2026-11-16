@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
+import { useSearchParams } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import type { PlaygroundItem } from '@/content/getPlayground';
 import { easeOutExpo } from './easings';
@@ -33,6 +33,7 @@ function isHtmlSrc(src: string) {
 
 function PlaygroundMediaViewer({ item }: { item: PlaygroundItem }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isCssFullscreen, setIsCssFullscreen] = useState(false);
 
@@ -54,6 +55,22 @@ function PlaygroundMediaViewer({ item }: { item: PlaygroundItem }) {
       document.removeEventListener('webkitfullscreenchange', handleFsChange);
     };
   }, []);
+
+  // Explicitly release media decoder / range stream when switching pieces
+  useEffect(() => {
+    const vid = videoRef.current;
+    return () => {
+      if (vid) {
+        try {
+          vid.pause();
+          vid.removeAttribute('src');
+          vid.load();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, [item.embed]);
 
   const toggleFullscreen = async () => {
     const container = containerRef.current;
@@ -146,12 +163,14 @@ function PlaygroundMediaViewer({ item }: { item: PlaygroundItem }) {
       ) : isVideo ? (
         <div className="Playground_mediaContainer">
           <video
+            ref={videoRef}
+            key={item.embed}
             src={item.embed}
             autoPlay
             loop
-            muted={false}
             playsInline
             controls
+            preload="metadata"
             className="Playground_videoElement"
           />
         </div>
@@ -177,7 +196,6 @@ function PlaygroundMediaViewer({ item }: { item: PlaygroundItem }) {
 }
 
 export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedSlug, setSelectedSlug] = useState<string | null>(
     searchParams.get('open')
@@ -244,18 +262,24 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [items, selectedSlug]);
 
-  // Parallax card motion on scroll within /playground
+  // Demand-driven parallax card motion on scroll (sleeps when idle or in detail view)
   useEffect(() => {
+    if (selectedSlug) return;
+
     let rafId = 0;
     let currentScroll = window.scrollY;
+    let running = false;
 
     const updateParallax = () => {
-      currentScroll += (window.scrollY - currentScroll) * 0.12;
+      const targetScroll = window.scrollY;
+      const diff = targetScroll - currentScroll;
+      currentScroll += diff * 0.14;
+
       const isDesktop = window.matchMedia('(min-width: 900px)').matches;
       for (let i = 0; i < cardRefs.current.length; i++) {
         const el = cardRefs.current[i];
         if (!el) continue;
-        if (!isDesktop || selectedSlug) {
+        if (!isDesktop) {
           el.style.transform = '';
           continue;
         }
@@ -263,11 +287,24 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
         const yOffset = currentScroll * speed;
         el.style.transform = `translate3d(0, ${yOffset}px, 0)`;
       }
-      rafId = requestAnimationFrame(updateParallax);
-    };
-    rafId = requestAnimationFrame(updateParallax);
 
+      if (Math.abs(diff) > 0.5) {
+        rafId = requestAnimationFrame(updateParallax);
+      } else {
+        running = false;
+      }
+    };
+
+    const onScroll = () => {
+      if (!running) {
+        running = true;
+        rafId = requestAnimationFrame(updateParallax);
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
+      window.removeEventListener('scroll', onScroll);
       cancelAnimationFrame(rafId);
     };
   }, [selectedSlug]);
@@ -282,277 +319,274 @@ export function PlaygroundGrid({ items }: { items: PlaygroundItem[] }) {
     return items[(idx + 1) % items.length] || null;
   }, [activeItem, items]);
 
+  const otherItems = React.useMemo(() => {
+    if (!activeItem) return items;
+    return items.filter((i) => i.slug !== activeItem.slug);
+  }, [activeItem, items]);
+
   return (
-    <LayoutGroup>
-      <div id="projects" className="Projects_projects">
-        <AnimatePresence>
-          {activeItem && (
-            <BackToPlayground show={true} onClick={closeExperiment} />
-          )}
-        </AnimatePresence>
+    <div id="projects" className="Projects_projects">
+      <AnimatePresence>
+        {activeItem && (
+          <BackToPlayground show={true} onClick={closeExperiment} />
+        )}
+      </AnimatePresence>
 
-        <div
-          className={`Spacer_spacer ${
-            activeItem ? 'Project_backSpace' : ''
-          }`.trim()}
+      <div
+        className={`Spacer_spacer ${
+          activeItem ? 'Project_backSpace' : ''
+        }`.trim()}
+      />
+
+      {/* Top-Left Title: "Playground" in grid view, or the selected piece's 2-line title when clicked */}
+      <div key={activeItem ? activeItem.slug : 'playground-root'}>
+        <PageTitle
+          title={activeTitleParts}
+          titleOffset={activeItem ? ['38%', '46%'] : ['45%']}
+          show={true}
         />
+      </div>
 
-        {/* Top-Left Title: "Playground" in grid view, or the selected piece's 2-line title when clicked */}
-        <div key={activeItem ? activeItem.slug : 'playground-root'}>
-          <PageTitle
-            title={activeTitleParts}
-            titleOffset={activeItem ? ['38%', '46%'] : ['45%']}
-            show={true}
-          />
+      {/* Top-Right Counter */}
+      <div
+        className={`ProjectsList_progressWrapper ${
+          activeItem ? 'Playground_progressWrapper' : ''
+        }`}
+      >
+        <div className="ProjectsList_current">
+          <RevealMask show={true}>
+            <Title as="span" className="ProjectsList_currentLabel">
+              {currentStr}
+            </Title>
+          </RevealMask>
         </div>
+        <div className="ProjectsList_rest">
+          <RevealMask show={true} delay={0.1}>
+            <Title as="span" className="ProjectsList_sep">
+              /
+            </Title>
+          </RevealMask>
+          <RevealMask show={true} delay={0.2}>
+            <Title as="span" className="ProjectsList_totalLabel">
+              {totalStr}
+            </Title>
+          </RevealMask>
+        </div>
+      </div>
 
-        {/* Top-Right Counter */}
-        <div
-          className={`ProjectsList_progressWrapper ${
-            activeItem ? 'Playground_progressWrapper' : ''
-          }`}
+      {!activeItem ? (
+        /* STATE 1: Clean Thumbnail Grid */
+        <motion.section
+          key="playground-grid"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="Playground_gridSection"
+          style={{
+            marginTop: 'max(2.5rem, 5vw)',
+            paddingBottom: 'calc(var(--indent) * 8)',
+            display: 'grid',
+            gridTemplateColumns:
+              'repeat(auto-fill, minmax(min(100%, 400px), 1fr))',
+            gap: 'var(--indent)',
+            width: '100%',
+          }}
         >
-          <div className="ProjectsList_current">
-            <RevealMask show={true}>
-              <Title as="span" className="ProjectsList_currentLabel">
-                {currentStr}
-              </Title>
-            </RevealMask>
-          </div>
-          <div className="ProjectsList_rest">
-            <RevealMask show={true} delay={0.1}>
-              <Title as="span" className="ProjectsList_sep">
-                /
-              </Title>
-            </RevealMask>
-            <RevealMask show={true} delay={0.2}>
-              <Title as="span" className="ProjectsList_totalLabel">
-                {totalStr}
-              </Title>
-            </RevealMask>
-          </div>
-        </div>
-
-        <AnimatePresence mode="wait">
-          {!activeItem ? (
-            /* STATE 1: Clean Thumbnail Grid */
-            <motion.section
-              key="playground-grid"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35 }}
-              className="Playground_gridSection"
-              style={{
-                marginTop: 'max(2.5rem, 5vw)',
-                paddingBottom: 'calc(var(--indent) * 8)',
-                display: 'grid',
-                gridTemplateColumns:
-                  'repeat(auto-fill, minmax(min(100%, 400px), 1fr))',
-                gap: 'var(--indent)',
-                width: '100%',
+          {items.map((item, idx) => (
+            <article
+              key={item.slug}
+              ref={(el) => {
+                cardRefs.current[idx] = el;
               }}
+              onMouseEnter={() => setHoveredSlug(item.slug)}
+              onClick={() => openExperiment(item.slug)}
+              className="Playground_cardArticle"
+              style={{ cursor: 'pointer', willChange: 'transform' }}
             >
-              {items.map((item, idx) => (
-                <article
-                  key={item.slug}
-                  ref={(el) => {
-                    cardRefs.current[idx] = el;
-                  }}
-                  onMouseEnter={() => setHoveredSlug(item.slug)}
-                  onClick={() => openExperiment(item.slug)}
-                  className="Playground_cardArticle"
-                  style={{ cursor: 'pointer', willChange: 'transform' }}
-                >
-                  <motion.div
-                    layoutId={`playground-media-${item.slug}`}
-                    transition={{ duration: 0.7, ease: easeOutExpo }}
-                    className="MediaGrid_mediaContent"
-                  >
-                    {isVideoSrc(item.thumbnail) ? (
-                      <video
-                        src={item.thumbnail}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                      />
-                    ) : isHtmlSrc(item.thumbnail) ? (
-                      <iframe
-                        src={item.thumbnail}
-                        title={item.title}
-                        tabIndex={-1}
-                        style={{
-                          position: 'absolute',
-                          inset: 0,
-                          width: '100%',
-                          height: '100%',
-                          border: 0,
-                          display: 'block',
-                          pointerEvents: 'none',
-                          zIndex: 2,
-                        }}
-                      />
-                    ) : (
-                      <img src={item.thumbnail} alt={item.title} />
-                    )}
-                  </motion.div>
-                  <div className="PlaygroundMobile_cardMeta">
-                    <BodyCopyMedium as="span">
-                      {item.displayNumber}. {item.title}
-                    </BodyCopyMedium>
-                  </div>
-                </article>
-              ))}
-            </motion.section>
-          ) : (
-            /* STATE 2: Option B — In-Flow Dual-Column (Data on Left, Media on Right) */
-            <motion.div
-              key={`playground-detail-${activeItem.slug}`}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.35, ease: easeOutExpo }}
-            >
-              <div className="Playground_detailLayout">
-                {/* Left Column: Metadata */}
-                <aside className="Playground_detailSidebar">
-                  <div className="List_listWrapper Project_role">
-                    <BodyCopyLarge className="List_listTitle">
-                      <RevealMask show={true} delay={0.08}>
-                        Medium & Tools
+              <div className="MediaGrid_mediaContent">
+                {isVideoSrc(item.thumbnail) ? (
+                  <video
+                    src={item.thumbnail}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                  />
+                ) : isHtmlSrc(item.thumbnail) ? (
+                  <iframe
+                    src={item.thumbnail}
+                    title={item.title}
+                    tabIndex={-1}
+                    loading="lazy"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      border: 0,
+                      display: 'block',
+                      pointerEvents: 'none',
+                      zIndex: 2,
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={item.thumbnail}
+                    alt={item.title}
+                    loading="lazy"
+                  />
+                )}
+              </div>
+              <div className="PlaygroundMobile_cardMeta">
+                <BodyCopyMedium as="span">
+                  {item.displayNumber}. {item.title}
+                </BodyCopyMedium>
+              </div>
+            </article>
+          ))}
+        </motion.section>
+      ) : (
+        /* STATE 2: Option B — In-Flow Dual-Column (Data on Left, Media on Right) */
+        <motion.div
+          key={`playground-detail-${activeItem.slug}`}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: easeOutExpo }}
+        >
+          <div className="Playground_detailLayout">
+            {/* Left Column: Metadata */}
+            <aside className="Playground_detailSidebar">
+              <div className="List_listWrapper Project_role">
+                <BodyCopyLarge className="List_listTitle">
+                  <RevealMask show={true} delay={0.08}>
+                    Medium & Tools
+                  </RevealMask>
+                </BodyCopyLarge>
+                <ul>
+                  <li className="List_listItem">
+                    <BodyCopyMedium>
+                      <RevealMask show={true} delay={0.14}>
+                        {activeItem.tech.join(' / ')}
                       </RevealMask>
-                    </BodyCopyLarge>
-                    <ul>
-                      <li className="List_listItem">
+                    </BodyCopyMedium>
+                  </li>
+                </ul>
+              </div>
+
+              <div
+                className="List_listWrapper Project_summary"
+                style={{ whiteSpace: 'normal', maxWidth: '32rem' }}
+              >
+                <BodyCopyLarge className="List_listTitle">
+                  <RevealMask show={true} delay={0.24}>
+                    Summary
+                  </RevealMask>
+                </BodyCopyLarge>
+                <ul>
+                  {activeItem.note && (
+                    <li className="List_listItem">
+                      <BodyCopyMedium>
+                        <RevealMask show={true} delay={0.3}>
+                          {activeItem.note}
+                        </RevealMask>
+                      </BodyCopyMedium>
+                    </li>
+                  )}
+                  {activeItem.content &&
+                    activeItem.content !== activeItem.note && (
+                      <li
+                        className="List_listItem"
+                        style={{ marginTop: '0.75em' }}
+                      >
                         <BodyCopyMedium>
-                          <RevealMask show={true} delay={0.14}>
-                            {activeItem.tech.join(' / ')}
+                          <RevealMask show={true} delay={0.36}>
+                            {activeItem.content}
                           </RevealMask>
                         </BodyCopyMedium>
                       </li>
-                    </ul>
-                  </div>
-
-                  <div
-                    className="List_listWrapper Project_summary"
-                    style={{ whiteSpace: 'normal', maxWidth: '32rem' }}
-                  >
-                    <BodyCopyLarge className="List_listTitle">
-                      <RevealMask show={true} delay={0.24}>
-                        Summary
-                      </RevealMask>
-                    </BodyCopyLarge>
-                    <ul>
-                      {activeItem.note && (
-                        <li className="List_listItem">
-                          <BodyCopyMedium>
-                            <RevealMask show={true} delay={0.3}>
-                              {activeItem.note}
-                            </RevealMask>
-                          </BodyCopyMedium>
-                        </li>
-                      )}
-                      {activeItem.content &&
-                        activeItem.content !== activeItem.note && (
-                          <li
-                            className="List_listItem"
-                            style={{ marginTop: '0.75em' }}
-                          >
-                            <BodyCopyMedium>
-                              <RevealMask show={true} delay={0.36}>
-                                {activeItem.content}
-                              </RevealMask>
-                            </BodyCopyMedium>
-                          </li>
-                        )}
-                    </ul>
-                  </div>
-                </aside>
-
-                {/* Right Column: Clean Media Viewport + Switcher */}
-                <section className="Playground_mediaColumn">
-                  <PlaygroundMediaViewer item={activeItem} />
-
-                  {/* Switcher Strip of other experiments */}
-                  <div className="Playground_switcherSection">
-                    <div className="Playground_switcherLabel">Switch Piece</div>
-                    <div className="Playground_switcherGrid">
-                      {items.map((other) => {
-                        const isCurrent = other.slug === activeItem.slug;
-                        return (
-                          <button
-                            key={other.slug}
-                            type="button"
-                            onClick={() => openExperiment(other.slug)}
-                            className={`Playground_switcherCard ${
-                              isCurrent ? 'Playground_switcherCardActive' : ''
-                            }`}
-                            aria-label={other.title}
-                          >
-                            <div className="Playground_switcherThumb">
-                              {isVideoSrc(other.thumbnail) ? (
-                                <video
-                                  src={other.thumbnail}
-                                  autoPlay
-                                  muted
-                                  loop
-                                  playsInline
-                                />
-                              ) : isHtmlSrc(other.thumbnail) ? (
-                                <iframe
-                                  src={other.thumbnail}
-                                  tabIndex={-1}
-                                  title={other.title}
-                                  style={{ pointerEvents: 'none' }}
-                                />
-                              ) : (
-                                <img
-                                  src={other.thumbnail}
-                                  alt={other.title}
-                                />
-                              )}
-                            </div>
-                            <div className="Playground_switcherCardMeta">
-                              <span className="Playground_switcherNum">
-                                {other.displayNumber}
-                              </span>
-                              <span className="Playground_switcherTitle">
-                                {other.title}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </section>
+                    )}
+                </ul>
               </div>
+            </aside>
 
-              {/* In-flow Next Piece Footer */}
-              {nextItem && (
-                <footer className="Project_footer Project_show Playground_footerInFlow">
-                  <div className="Project_footerLinkWrapper">
+            {/* Right Column: Clean Media Viewport + Switcher */}
+            <section className="Playground_mediaColumn">
+              <PlaygroundMediaViewer item={activeItem} />
+
+              {/* Switcher Strip of other experiments (excludes active item & avoids heavy 3D iframes in tiny thumbs) */}
+              <div className="Playground_switcherSection">
+                <div className="Playground_switcherLabel">More in Playground</div>
+                <div className="Playground_switcherGrid">
+                  {otherItems.map((other) => (
                     <button
+                      key={other.slug}
                       type="button"
-                      onClick={() => openExperiment(nextItem.slug)}
-                      className="Project_nextLink"
-                      style={{ cursor: 'pointer' }}
-                      aria-label={`Next: ${nextItem.title}`}
-                    />
-                    <Title className="Project_nextLinkLabel">
-                      <RevealMask show={true} delay={0.2}>
-                        Next Piece
-                      </RevealMask>
-                    </Title>
-                  </div>
-                </footer>
-              )}
-            </motion.div>
+                      onClick={() => openExperiment(other.slug)}
+                      className="Playground_switcherCard"
+                      aria-label={other.title}
+                    >
+                      <div className="Playground_switcherThumb">
+                        {isVideoSrc(other.thumbnail) ? (
+                          <video
+                            src={other.thumbnail}
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            preload="metadata"
+                          />
+                        ) : isHtmlSrc(other.thumbnail) ? (
+                          <img
+                            src="/playground/elephant-walkcycle/thumb.svg"
+                            alt={other.title}
+                            loading="lazy"
+                          />
+                        ) : (
+                          <img
+                            src={other.thumbnail}
+                            alt={other.title}
+                            loading="lazy"
+                          />
+                        )}
+                      </div>
+                      <div className="Playground_switcherCardMeta">
+                        <span className="Playground_switcherNum">
+                          {other.displayNumber}
+                        </span>
+                        <span className="Playground_switcherTitle">
+                          {other.title}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* In-flow Next Piece Footer */}
+          {nextItem && (
+            <footer className="Project_footer Project_show Playground_footerInFlow">
+              <div className="Project_footerLinkWrapper">
+                <button
+                  type="button"
+                  onClick={() => openExperiment(nextItem.slug)}
+                  className="Project_nextLink"
+                  style={{ cursor: 'pointer' }}
+                  aria-label={`Next: ${nextItem.title}`}
+                />
+                <Title className="Project_nextLinkLabel">
+                  <RevealMask show={true} delay={0.2}>
+                    Next Piece
+                  </RevealMask>
+                </Title>
+              </div>
+            </footer>
           )}
-        </AnimatePresence>
-      </div>
-    </LayoutGroup>
+        </motion.div>
+      )}
+    </div>
   );
 }
 

@@ -157,21 +157,24 @@ function BackgroundCanvas() {
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
           const resize = () => {
-            const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
-            canvas.width = window.innerWidth * dpr;
-            canvas.height = window.innerHeight * dpr;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
             gl.viewport(0, 0, canvas.width, canvas.height);
           };
           resize();
           window.addEventListener('resize', resize);
 
           const start = performance.now();
+          let lastDraw = 0;
           const render = (now: number) => {
-            const elapsed = (now - start) * 0.001;
-            gl.clearColor(0, 0, 0, 0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            gl.uniform1f(uTime, elapsed);
-            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            if (!document.hidden && now - lastDraw >= 32) {
+              lastDraw = now;
+              const elapsed = (now - start) * 0.001;
+              gl.clearColor(0, 0, 0, 0);
+              gl.clear(gl.COLOR_BUFFER_BIT);
+              gl.uniform1f(uTime, elapsed);
+              gl.drawArrays(gl.TRIANGLES, 0, 6);
+            }
             rafId = requestAnimationFrame(render);
           };
           rafId = requestAnimationFrame(render);
@@ -231,6 +234,8 @@ function BackgroundCanvas() {
 
       const mouse = { x: 0, y: 0 };
       let frameCount = 0;
+      let idleSteps = 0;
+      let isLooping = false;
 
       for (let i = 0; i < pointCount; i++) {
         const offset = i * 3;
@@ -243,7 +248,7 @@ function BackgroundCanvas() {
       const resizeTrail = () => {
         width = window.innerWidth;
         height = window.innerHeight;
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
         renderer.setSize(width, height, false);
         camera.left = -width / 2;
         camera.right = width / 2;
@@ -251,34 +256,52 @@ function BackgroundCanvas() {
         camera.bottom = -height / 2;
         camera.updateProjectionMatrix();
         material.resolution.set(width, height);
+        renderer.render(scene, camera);
       };
-
-      const onMove = (e: MouseEvent) => {
-        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-      };
-
-      window.addEventListener('resize', resizeTrail, { passive: true });
-      window.addEventListener('mousemove', onMove, { passive: true });
 
       const drawTrail = () => {
         const worldX = mouse.x * (width / 2);
         const worldY = mouse.y * (height / 2);
 
         if (frameCount === 0) {
-          points.copyWithin(0, 3);
           const lastOffset = (pointCount - 1) * 3;
+          const dx = Math.abs(points[lastOffset] - worldX);
+          const dy = Math.abs(points[lastOffset + 1] - worldY);
+          if (dx < 0.5 && dy < 0.5) {
+            idleSteps++;
+          } else {
+            idleSteps = 0;
+          }
+
+          points.copyWithin(0, 3);
           points[lastOffset] = worldX;
           points[lastOffset + 1] = worldY;
           points[lastOffset + 2] = 0;
           geometry.setPoints(points, (n: number) => 0.15 * n);
+          renderer.render(scene, camera);
         }
         frameCount = (frameCount + 1) % 12;
 
-        renderer.render(scene, camera);
-        trailRaf = requestAnimationFrame(drawTrail);
+        if (idleSteps <= pointCount) {
+          trailRaf = requestAnimationFrame(drawTrail);
+        } else {
+          isLooping = false;
+        }
       };
-      trailRaf = requestAnimationFrame(drawTrail);
+
+      const onMove = (e: MouseEvent) => {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        idleSteps = 0;
+        if (!isLooping) {
+          isLooping = true;
+          frameCount = 0;
+          trailRaf = requestAnimationFrame(drawTrail);
+        }
+      };
+
+      window.addEventListener('resize', resizeTrail, { passive: true });
+      window.addEventListener('mousemove', onMove, { passive: true });
 
       cleanupTrail = () => {
         cancelAnimationFrame(trailRaf);

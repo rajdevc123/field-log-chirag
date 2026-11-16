@@ -38,6 +38,15 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
     orderedProjects[0]?.slug || ''
   );
   const [hasHoveredLink, setHasHoveredLink] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(true);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 900px)');
+    setIsDesktop(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   const activeProject =
     orderedProjects.find((p) => p.slug === hoveredSlug) || orderedProjects[0];
@@ -52,6 +61,7 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
   // Refs for smooth lerp parallax scrolling of the right-hand project stack
   const trackRef = useRef<HTMLDivElement | null>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const itemMetricsRef = useRef<{ top: number; height: number }[]>([]);
   const mediaRefs = useRef<(HTMLDivElement | null)[]>([]);
   const targetYRef = useRef(0);
   const currentYRef = useRef(0);
@@ -64,10 +74,10 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
   const mountTimeRef = useRef(0);
 
   const scrollToProjectIndex = (idx: number) => {
+    const metric = itemMetricsRef.current[idx];
     const itemEl = itemRefs.current[idx];
-    const trackEl = trackRef.current;
-    if (!itemEl || !trackEl) return;
-    const offset = itemEl.offsetTop - window.innerHeight * 0.16;
+    const top = metric ? metric.top : itemEl?.offsetTop ?? 0;
+    const offset = top - window.innerHeight * 0.16;
     targetYRef.current = Math.max(
       0,
       Math.min(maxScrollRef.current, offset)
@@ -90,6 +100,10 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
         0,
         Math.min(maxScrollRef.current, targetYRef.current)
       );
+      itemMetricsRef.current = itemRefs.current.map((el) => ({
+        top: el ? el.offsetTop : 0,
+        height: el ? el.offsetHeight : 0,
+      }));
     };
 
     measure();
@@ -99,6 +113,7 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
 
     let rafId = 0;
     let lastTime = performance.now();
+    let settled = false;
 
     const tick = (now: number) => {
       const dt = Math.min((now - lastTime) / 1000, 0.1);
@@ -111,44 +126,47 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
       }
 
       const diff = targetYRef.current - currentYRef.current;
-      // Smooth damped lerp factor
-      const lerp = 1 - Math.pow(1 - 0.08, dt * 60);
-      currentYRef.current += diff * lerp;
-      const velocity = diff * lerp;
+      if (Math.abs(diff) > 0.05 || !settled) {
+        settled = Math.abs(diff) <= 0.05;
+        // Smooth damped lerp factor
+        const lerp = 1 - Math.pow(1 - 0.08, dt * 60);
+        currentYRef.current += diff * lerp;
+        const velocity = settled ? 0 : diff * lerp;
 
-      if (trackRef.current) {
-        trackRef.current.style.transform = `translate3d(0, ${-currentYRef.current}px, 0)`;
-      }
-
-      // Apply subtle parallax shift & velocity skew to each project's media card
-      const viewportCenter = window.innerHeight * 0.45;
-      let closestIdx = 0;
-      let closestDist = Infinity;
-
-      for (let i = 0; i < itemRefs.current.length; i++) {
-        const el = itemRefs.current[i];
-        const mediaEl = mediaRefs.current[i];
-        if (!el) continue;
-
-        const itemTopInView = el.offsetTop - currentYRef.current;
-        const itemCenterInView = itemTopInView + el.offsetHeight * 0.5;
-        const distFromCenter = itemCenterInView - viewportCenter;
-
-        if (Math.abs(distFromCenter) < closestDist) {
-          closestDist = Math.abs(distFromCenter);
-          closestIdx = i;
+        if (trackRef.current) {
+          trackRef.current.style.transform = `translate3d(0, ${-currentYRef.current}px, 0)`;
         }
 
-        if (mediaEl) {
-          const parallaxY = distFromCenter * -0.08;
-          const clampVel = Math.max(-6, Math.min(6, velocity * 0.08));
-          mediaEl.style.transform = `translate3d(0, ${parallaxY}px, 0) skewY(${clampVel * 0.18}deg)`;
-        }
-      }
+        // Apply subtle parallax shift & velocity skew using cached metrics (zero layout thrashing)
+        const viewportCenter = window.innerHeight * 0.45;
+        let closestIdx = 0;
+        let closestDist = Infinity;
 
-      if (!isManualHoverRef.current && orderedProjects[closestIdx]) {
-        const nextSlug = orderedProjects[closestIdx].slug;
-        setHoveredSlug((prev) => (prev !== nextSlug ? nextSlug : prev));
+        for (let i = 0; i < itemRefs.current.length; i++) {
+          const metric = itemMetricsRef.current[i];
+          const mediaEl = mediaRefs.current[i];
+          if (!metric) continue;
+
+          const itemTopInView = metric.top - currentYRef.current;
+          const itemCenterInView = itemTopInView + metric.height * 0.5;
+          const distFromCenter = itemCenterInView - viewportCenter;
+
+          if (Math.abs(distFromCenter) < closestDist) {
+            closestDist = Math.abs(distFromCenter);
+            closestIdx = i;
+          }
+
+          if (mediaEl) {
+            const parallaxY = distFromCenter * -0.08;
+            const clampVel = Math.max(-6, Math.min(6, velocity * 0.08));
+            mediaEl.style.transform = `translate3d(0, ${parallaxY}px, 0) skewY(${clampVel * 0.18}deg)`;
+          }
+        }
+
+        if (!isManualHoverRef.current && orderedProjects[closestIdx]) {
+          const nextSlug = orderedProjects[closestIdx].slug;
+          setHoveredSlug((prev) => (prev !== nextSlug ? nextSlug : prev));
+        }
       }
 
       rafId = requestAnimationFrame(tick);
@@ -384,30 +402,34 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
                             isFocused ? 'ProjectsList_hovered' : ''
                           }`.trim()}
                         >
-                          <span className="WorkMobile_cardMedia" aria-hidden="true">
-                            <span
-                              className="MediaGrid_mediaContent WorkMobile_cardFrame"
-                              style={{
-                                backgroundColor:
-                                  project.colors?.[0] || 'var(--color-default)',
-                              }}
-                            >
-                              {isVideoSrc(project.heroMedia || project.thumbnail) ? (
-                                <video
-                                  src={project.heroMedia || project.thumbnail}
-                                  autoPlay
-                                  muted
-                                  loop
-                                  playsInline
-                                />
-                              ) : (
-                                <img
-                                  src={project.heroMedia || project.thumbnail}
-                                  alt=""
-                                />
-                              )}
+                          {!isDesktop && (
+                            <span className="WorkMobile_cardMedia" aria-hidden="true">
+                              <span
+                                className="MediaGrid_mediaContent WorkMobile_cardFrame"
+                                style={{
+                                  backgroundColor:
+                                    project.colors?.[0] || 'var(--color-default)',
+                                }}
+                              >
+                                {isVideoSrc(project.heroMedia || project.thumbnail) ? (
+                                  <video
+                                    src={project.heroMedia || project.thumbnail}
+                                    autoPlay
+                                    muted
+                                    loop
+                                    playsInline
+                                    preload="metadata"
+                                  />
+                                ) : (
+                                  <img
+                                    src={project.heroMedia || project.thumbnail}
+                                    alt=""
+                                    loading="lazy"
+                                  />
+                                )}
+                              </span>
                             </span>
-                          </span>
+                          )}
                           <span className="WorkMobile_cardTitle">
                             {numLabel}. {project.title}
                           </span>
@@ -474,15 +496,18 @@ export function WorkIndex({ groups, allProjects }: WorkIndexProps) {
                       }}
                     >
                       {isVideoSrc(mediaSrc) ? (
-                        <video
-                          src={mediaSrc}
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                        />
+                        isDesktop ? (
+                          <video
+                            src={mediaSrc}
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            preload="metadata"
+                          />
+                        ) : null
                       ) : (
-                        <img src={mediaSrc} alt={project.title} />
+                        <img src={mediaSrc} alt={project.title} loading="lazy" />
                       )}
                     </div>
                   </Link>

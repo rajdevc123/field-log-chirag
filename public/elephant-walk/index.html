@@ -213,8 +213,8 @@ const G = {
 const OFFSETS = { LH: 0.0, LF: 0.25, RH: 0.5, RF: 0.75 };
 
 // ---------------------------------------------------------------- renderer & scene
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ antialias: params.get('preview') !== '1' });
+renderer.setPixelRatio(params.get('preview') === '1' ? 1 : Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = false; // Clean editorial Riso print without harsh black cast shadows
 renderer.toneMapping = THREE.NoToneMapping;
@@ -660,11 +660,20 @@ fbx.traverse(o => {
 const downRay = new THREE.Raycaster();
 const downOrigin = new THREE.Vector3();
 const DOWN = new THREE.Vector3(0, -1, 0);
+const heightCache = new Map();
 function sampleWorldY(x, z, fallbackY = 0) {
-  downOrigin.set(x, 60, z);
+  const qx = Math.round(x * 4);
+  const qz = Math.round(z * 4);
+  const key = (qx << 16) ^ (qz & 0xffff);
+  const cached = heightCache.get(key);
+  if (cached !== undefined) return cached;
+  downOrigin.set(qx * 0.25, 60, qz * 0.25);
   downRay.set(downOrigin, DOWN);
   const hits = downRay.intersectObjects(walkableMeshes, false);
-  return hits.length ? hits[0].point.y : fallbackY;
+  const val = hits.length ? hits[0].point.y : fallbackY;
+  if (heightCache.size > 8192) heightCache.clear();
+  heightCache.set(key, val);
+  return val;
 }
 
 // ---------------------------------------------------------------- setup elephant & scale
